@@ -1,10 +1,15 @@
 [package]
-name = "n-orm"
+name = "profile"
 version = "0.1.0"
 edition = "2021"
+
+[lib]
+proc-macro = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-
-profile = { path = "./profile" }
+syn = { version = "1", features = [ "full" ] }
+quote = "1"
+proc-macro-error = "1"
+proc-macro2 = "1"
