@@ -7,8 +7,8 @@ use proc_macro2::{Ident, Punct, Spacing};
 use proc_macro_error::{abort, proc_macro_error, Diagnostic, Level};
 use quote::quote;
 use quote::ToTokens;
+use syn::parse_macro_input;
 use syn::spanned::Spanned;
-use syn::{parse_macro_input, };
 use syn::{Attribute, Visibility};
 
 fn get_inner_tokens(tokens: TokenStream) -> Option<TokenStream> {
@@ -36,7 +36,7 @@ fn handle_attr(
         .map(|s| s.ident.to_string())
         .collect::<String>();
 
-    if id.as_str() == "iso_default" {
+    if id.as_str() == "iso_toggle" {
         *iso_default ^= true;
     } else if id.as_str() == "on" {
         let loc = attr.span();
