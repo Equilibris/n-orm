@@ -8,7 +8,7 @@ use proc_macro_error::{abort, proc_macro_error, Diagnostic, Level};
 use quote::quote;
 use quote::ToTokens;
 use syn::spanned::Spanned;
-use syn::{parse_macro_input, Token};
+use syn::{parse_macro_input, };
 use syn::{Attribute, Visibility};
 
 fn get_inner_tokens(tokens: TokenStream) -> Option<TokenStream> {
@@ -93,6 +93,55 @@ fn handle_attr(
     }
 }
 
+fn inject_struct_interior(
+    delim: Delimiter,
+
+    grouping_interior: HashMap<String, TokenStream>,
+    token_entires: &mut HashMap<String, TokenStream>,
+    impl_generics: syn::ImplGenerics,
+    where_clause: &syn::WhereClause,
+    field_name_destructure: TokenStream,
+    post_name_generics: syn::TypeGenerics,
+    output: &mut TokenStream,
+    src_name: String,
+    src_ident: Ident,
+    semi: bool,
+) {
+    let field_names = Group::new(delim, field_name_destructure);
+    for (profile_name, profile) in grouping_interior {
+        let ungrouped_profile = token_entires.get_mut(&profile_name).unwrap();
+
+        ungrouped_profile.extend(Group::new(delim, profile).to_token_stream());
+        ungrouped_profile.extend(where_clause.to_token_stream());
+        if semi {
+            ungrouped_profile.extend(quote! {;});
+        }
+
+        let profile_name_ident = Ident::new(profile_name.as_str(), Span::call_site().into());
+
+        output.extend(ungrouped_profile.clone());
+
+        if profile_name != src_name {
+            output.extend(quote! {
+                                impl #impl_generics Into<#profile_name_ident #post_name_generics> for #src_ident #post_name_generics #where_clause {
+                                    fn into(self) -> #profile_name_ident #post_name_generics {
+                                        let Self #field_names = self;
+
+                                        #profile_name_ident #field_names
+                                    }
+                                }
+                                impl #impl_generics Into<#src_ident #post_name_generics> for #profile_name_ident #post_name_generics #where_clause {
+                                    fn into(self) -> #src_ident #post_name_generics {
+                                        let Self #field_names = self;
+
+                                        #src_ident #field_names
+                                    }
+                                }
+                            });
+        }
+    }
+}
+
 #[proc_macro_error]
 #[proc_macro_attribute]
 pub fn profile(attr: Ts1, item: Ts1) -> Ts1 {
@@ -173,11 +222,54 @@ pub fn profile(attr: Ts1, item: Ts1) -> Ts1 {
 
             let mut output = TokenStream::new();
             match item.fields {
-                syn::Fields::Named(fields) => todo!(),
+                syn::Fields::Named(fields) => {
+                    let mut grouping_interior = HashMap::with_capacity(token_entires.len());
+                    let mut field_name_destructure = TokenStream::new();
+                    for profile in token_entires.keys() {
+                        grouping_interior.insert(profile.clone(), TokenStream::new());
+                    }
+
+                    for field in fields.named.iter() {
+                        for attr in &field.attrs {
+                            handle_attr(
+                                attr.clone(),
+                                &mut grouping_interior,
+                                &mut iso_default,
+                                &default_profile,
+                                &src_name,
+                            )
+                        }
+
+                        let ident = field.ident.as_ref().unwrap();
+
+                        field_name_destructure.extend(quote! {#ident,});
+
+                        for profile in grouping_interior.values_mut() {
+                            profile.extend(field.vis.to_token_stream());
+                            profile.extend(field.ident.to_token_stream());
+                            profile.extend(field.colon_token.to_token_stream());
+                            profile.extend(field.ty.to_token_stream());
+                            profile.extend(Punct::new(',', Spacing::Alone).to_token_stream());
+                        }
+                    }
+
+                    inject_struct_interior(
+                        Delimiter::Brace,
+                        grouping_interior,
+                        &mut token_entires,
+                        impl_generics,
+                        where_clause,
+                        field_name_destructure,
+                        post_name_generics,
+                        &mut output,
+                        src_name,
+                        src_ident,
+                        false,
+                    );
+                }
                 syn::Fields::Unnamed(fields) => {
                     let mut grouping_interior = HashMap::with_capacity(token_entires.len());
                     let mut field_name_destructure = TokenStream::new();
-                    let mut field_type_destructure = TokenStream::new();
                     for profile in token_entires.keys() {
                         grouping_interior.insert(profile.clone(), TokenStream::new());
                     }
@@ -196,9 +288,7 @@ pub fn profile(attr: Ts1, item: Ts1) -> Ts1 {
                         let ident =
                             Ident::new(format!("e{}", index).as_str(), Span::call_site().into());
 
-                        let ty = &field.ty;
                         field_name_destructure.extend(quote! {#ident,});
-                        field_type_destructure.extend(quote! {#ty,});
 
                         for profile in grouping_interior.values_mut() {
                             profile.extend(field.vis.to_token_stream());
@@ -207,45 +297,19 @@ pub fn profile(attr: Ts1, item: Ts1) -> Ts1 {
                         }
                     }
 
-                    let field_names = Group::new(Delimiter::Parenthesis, field_name_destructure);
-                    let field_types = Group::new(Delimiter::Parenthesis, field_type_destructure);
-
-                    for (profile_name, profile) in grouping_interior {
-                        let ungrouped_profile = token_entires.get_mut(&profile_name).unwrap();
-
-                        ungrouped_profile
-                            .extend(Group::new(Delimiter::Parenthesis, profile).to_token_stream());
-                        ungrouped_profile.extend(where_clause.to_token_stream());
-                        ungrouped_profile.extend(
-                            item.semi_token
-                                .expect("Tuple struct requires semi")
-                                .to_token_stream(),
-                        );
-
-                        let profile_name_ident =
-                            Ident::new(profile_name.as_str(), Span::call_site().into());
-
-                        output.extend(ungrouped_profile.clone());
-
-                        if profile_name != src_name {
-                            output.extend(quote! {
-                                impl #impl_generics Into<#profile_name_ident #post_name_generics> for #src_ident #post_name_generics #where_clause {
-                                    fn into(self) -> #profile_name_ident #post_name_generics {
-                                        let Self #field_names = self;
-
-                                        #profile_name_ident #field_names
-                                    }
-                                }
-                                impl #impl_generics Into<#src_ident #post_name_generics> for #profile_name_ident #post_name_generics #where_clause {
-                                    fn into(self) -> #src_ident #post_name_generics {
-                                        let Self #field_names = self;
-
-                                        #src_ident #field_names
-                                    }
-                                }
-                            });
-                        }
-                    }
+                    inject_struct_interior(
+                        Delimiter::Parenthesis,
+                        grouping_interior,
+                        &mut token_entires,
+                        impl_generics,
+                        where_clause,
+                        field_name_destructure,
+                        post_name_generics,
+                        &mut output,
+                        src_name,
+                        src_ident,
+                        true,
+                    );
                 }
                 syn::Fields::Unit => {
                     for profile in token_entires.values_mut() {
