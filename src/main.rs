@@ -34,6 +34,9 @@ mod classic {
     #[on(#[derive(Eq)])]
     struct Base<T> {
         b: T,
+        a: i32,
+        d: String,
+        c: T,
     }
 }
 

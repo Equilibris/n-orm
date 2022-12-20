@@ -123,21 +123,21 @@ fn inject_struct_interior(
 
         if profile_name != src_name {
             output.extend(quote! {
-                                impl #impl_generics Into<#profile_name_ident #post_name_generics> for #src_ident #post_name_generics #where_clause {
-                                    fn into(self) -> #profile_name_ident #post_name_generics {
-                                        let Self #field_names = self;
+                impl #impl_generics Into<#profile_name_ident #post_name_generics> for #src_ident #post_name_generics #where_clause {
+                    fn into(self) -> #profile_name_ident #post_name_generics {
+                        let Self #field_names = self;
 
-                                        #profile_name_ident #field_names
-                                    }
-                                }
-                                impl #impl_generics Into<#src_ident #post_name_generics> for #profile_name_ident #post_name_generics #where_clause {
-                                    fn into(self) -> #src_ident #post_name_generics {
-                                        let Self #field_names = self;
+                        #profile_name_ident #field_names
+                    }
+                }
+                impl #impl_generics Into<#src_ident #post_name_generics> for #profile_name_ident #post_name_generics #where_clause {
+                    fn into(self) -> #src_ident #post_name_generics {
+                        let Self #field_names = self;
 
-                                        #src_ident #field_names
-                                    }
-                                }
-                            });
+                        #src_ident #field_names
+                    }
+                }
+            });
         }
     }
 }
@@ -188,6 +188,13 @@ pub fn profile(attr: Ts1, item: Ts1) -> Ts1 {
 
             let src_ident = item.ident.clone();
             let src_name = item.ident.to_string();
+
+            let mut morphisms: HashMap<(String, String), HashMap<String, TokenStream>> =
+                HashMap::new();
+
+            for profile in profiles.iter() {
+                morphisms.insert((profile.to_string(), src_name.clone()), HashMap::new());
+            }
 
             let default_profile = if profiles.len() == 1 {
                 Some(profiles.iter().next().unwrap().clone().to_string())
