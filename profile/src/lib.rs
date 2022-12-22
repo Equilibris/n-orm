@@ -2,9 +2,9 @@
 use std::collections::HashMap;
 
 use proc_macro::{Span, TokenStream as Ts1};
+use proc_macro2::Ident;
 use proc_macro2::{Delimiter, Group, TokenStream, TokenTree};
-use proc_macro2::{Ident, Punct, Spacing};
-use proc_macro_error::{abort, proc_macro_error, Diagnostic, Level, ResultExt};
+use proc_macro_error::{abort, proc_macro_error, Diagnostic, Level};
 use quote::quote;
 use quote::ToTokens;
 use syn::parse_macro_input;
@@ -15,17 +15,8 @@ type Morphisms = HashMap<(String, String), HashMap<String, TokenStream>>;
 
 #[derive(Default, Clone)]
 struct FieldMetadata {
-    pub type_stream: TokenStream,
+    pub inner_stream: TokenStream,
     pub destructor_stream: TokenStream,
-}
-
-impl FieldMetadata {
-    pub fn get_type_and_destructor(self, delim: Delimiter) -> (Group, Group) {
-        (
-            Group::new(delim, self.type_stream),
-            Group::new(delim, self.destructor_stream),
-        )
-    }
 }
 
 fn get_inner_tokens(tokens: TokenStream) -> Option<TokenStream> {
@@ -40,12 +31,14 @@ fn get_inner_tokens(tokens: TokenStream) -> Option<TokenStream> {
 
 fn handle_attr(
     attr: Attribute,
-    token_entires: &mut HashMap<String, TokenStream>,
+    fields_data: &mut HashMap<String, FieldMetadata>,
     iso_default: &mut bool,
     default_profile: &Option<String>,
     src_name: &String,
     morphisms: &mut Morphisms,
-) {
+
+    on_field: Option<&Ident>,
+) -> Option<String> {
     let id = attr
         .path
         .segments
@@ -55,6 +48,8 @@ fn handle_attr(
         .collect::<String>();
 
     let loc = attr.span();
+
+    use TokenTree::*;
 
     if id.as_str() == "iso_toggle" {
         *iso_default ^= true;
@@ -67,11 +62,33 @@ fn handle_attr(
             .into_iter();
 
         match (stream.next(), stream.next(), stream.next()) {
-            (Some(TokenTree::Ident(to)), Some(TokenTree::Ident(from)), None) => {
+            (Some(Ident(to)), Some(Ident(from)), None) => {
                 let k = (to.to_string(), from.to_string());
                 morphisms.insert(k, HashMap::default());
             }
             _ => abort!(loc, "Expects two indents #[into(From To)]"),
+        }
+    } else if let (Some(field), "transform") = (on_field, id.as_str()) {
+        let mut stream = get_inner_tokens(attr.tokens)
+            .ok_or_else(|| abort!(loc, "Expected grouping but this was not provided"))
+            .unwrap()
+            .into_iter();
+
+        match (stream.next(), stream.next(), stream.next()) {
+            (Some(Ident(to)), Some(Ident(from)), Some(Punct(p))) if p.as_char() == ',' => {
+                morphisms
+                    .get_mut(&(to.to_string(), from.to_string()))
+                    .unwrap_or_else(|| {
+                        abort!(
+                            loc,
+                            "Please declare morphism with #[into({} {})]",
+                            to.to_string(),
+                            from.to_string()
+                        )
+                    })
+                    .insert(field.to_string(), stream.collect::<TokenStream>());
+            }
+            _ => abort!(loc, "Expected the form #[transform(To From, ...)]"),
         }
     } else if id.as_str() == "on" {
         let stream = get_inner_tokens(attr.tokens)
@@ -80,22 +97,32 @@ fn handle_attr(
             .into_iter()
             .collect::<Vec<_>>();
 
-        match stream.get(0) {
-            Some(TokenTree::Ident(i))
-                if stream.len() >= 3
-                    && matches!(stream.get(1).unwrap(), TokenTree::Punct(p) if p.as_char() == ',') =>
-            {
+        match (stream.get(0), stream.get(1)) {
+            (Some(Ident(i)), Some(Punct(p))) if stream.len() >= 3 && p.as_char() == ',' => {
                 let profile = i.to_string();
 
-                if let Some(profile) = token_entires.get_mut(&profile) {
-                    profile.extend(stream.into_iter().skip(2));
+                if let Some(profile) = fields_data.get_mut(&profile) {
+                    profile.inner_stream.extend(stream.into_iter().skip(2));
                 } else {
                     abort!(loc, "Profile {} not defined", profile);
                 }
             }
+            (Some(Ident(i)), None) if on_field.is_some() => return Some(i.to_string()),
+            (None, None) if on_field.is_some() => {
+                if let Some(profile) = default_profile {
+                    return Some(profile.clone());
+                } else {
+                    // TODO: help
+                    abort!(loc, "Ambiguous profile. Please specify");
+                }
+            }
             _ => {
                 if let Some(profile) = default_profile.as_ref() {
-                    token_entires.get_mut(profile).unwrap().extend(stream);
+                    fields_data
+                        .get_mut(profile)
+                        .unwrap()
+                        .inner_stream
+                        .extend(stream);
                 } else {
                     // TODO: help
                     abort!(loc, "Ambiguous profile. Please specify");
@@ -110,59 +137,93 @@ fn handle_attr(
             .into_iter()
             .collect::<Vec<_>>();
 
-        for v in token_entires.values_mut() {
-            v.extend(stream.clone());
+        for v in fields_data.values_mut() {
+            v.inner_stream.extend(stream.clone());
         }
     } else if *iso_default {
         let stream = attr.to_token_stream().into_iter().collect::<Vec<_>>();
 
-        for v in token_entires.values_mut() {
-            v.extend(stream.clone());
+        for v in fields_data.values_mut() {
+            v.inner_stream.extend(stream.clone());
         }
     } else {
-        token_entires
+        fields_data
             .get_mut(src_name)
             .unwrap()
+            .inner_stream
             .extend(attr.to_token_stream());
     }
+    None
 }
 
 fn inject_struct_interior(
     delim: Delimiter,
 
-    grouping_interior: HashMap<String, TokenStream>,
+    grouping_interior: HashMap<String, FieldMetadata>,
+    (common_destructure, common_struct): (TokenStream, TokenStream),
     token_entires: &mut HashMap<String, TokenStream>,
     impl_generics: syn::ImplGenerics,
     where_clause: &syn::WhereClause,
-    field_name_destructure: TokenStream,
     post_name_generics: syn::TypeGenerics,
     output: &mut TokenStream,
-    src_name: String,
-    src_ident: Ident,
     semi: bool,
     morphisms: Morphisms,
 ) {
-    let field_names = Group::new(delim, field_name_destructure);
-    for (profile_name, profile) in grouping_interior {
-        let ungrouped_profile = token_entires.get_mut(&profile_name).unwrap();
+    for (profile_name, profile) in grouping_interior.iter() {
+        let ungrouped_profile = token_entires
+            .get_mut(profile_name)
+            .expect("Profile should exist");
 
-        ungrouped_profile.extend(Group::new(delim, profile).to_token_stream());
+        ungrouped_profile.extend(
+            Group::new(delim, {
+                let mut v = common_struct.clone();
+                v.extend(profile.inner_stream.clone());
+                v
+            })
+            .to_token_stream(),
+        );
         ungrouped_profile.extend(where_clause.to_token_stream());
         if semi {
             ungrouped_profile.extend(quote! {;});
         }
 
-        let profile_name_ident = Ident::new(profile_name.as_str(), Span::call_site().into());
-
         output.extend(ungrouped_profile.clone());
     }
+
     for ((from, to), key_injective) in morphisms {
+        let mut transform_inject_stream = TokenStream::new();
+
+        for (key, transform) in key_injective {
+            let key = Ident::new(key.as_str(), Span::call_site().into());
+            transform_inject_stream.extend(quote! { #key : { #transform }, })
+        }
+
+        transform_inject_stream.extend(common_destructure.clone());
+
+        let from_destructure = Group::new(delim, {
+            let mut v = common_destructure.clone();
+            v.extend(
+                grouping_interior
+                    .get(&from)
+                    .expect("From value")
+                    .destructor_stream
+                    .clone(),
+            );
+            v
+        });
+        let to_destructure = Group::new(delim, transform_inject_stream);
+
+        let (from, to) = (
+            Ident::new(from.as_str(), Span::call_site().into()),
+            Ident::new(to.as_str(), Span::call_site().into()),
+        );
+
         output.extend(quote! {
             impl #impl_generics Into<#to #post_name_generics> for #from #post_name_generics #where_clause {
                 fn into(self) -> #to #post_name_generics {
-                    let Self #field_names = self;
+                    let Self #from_destructure = self;
 
-                    #to #field_names
+                    #to #to_destructure
                 }
             }
         })
@@ -176,7 +237,7 @@ pub fn profile(attr: Ts1, item: Ts1) -> Ts1 {
         .into_iter()
         .fold((None, Vec::new()), |mut acc, x| match x {
             proc_macro::TokenTree::Ident(id) => {
-                acc.1.push(id);
+                acc.1.push(id.to_string());
                 acc
             }
             _ => (
@@ -216,18 +277,22 @@ pub fn profile(attr: Ts1, item: Ts1) -> Ts1 {
             let src_ident = item.ident.clone();
             let src_name = item.ident.to_string();
 
-            let mut fields = HashMap::new();
+            let mut fields_data = HashMap::new();
+            let mut common_destructure = TokenStream::new();
+            let mut common_struct = TokenStream::new();
 
             let mut morphisms: Morphisms = HashMap::new();
 
             for profile in profiles.iter() {
-                morphisms.insert((profile.to_string(), src_name.clone()), HashMap::new());
+                morphisms.insert((profile.clone(), src_name.clone()), HashMap::new());
                 morphisms.insert((src_name.clone(), profile.to_string()), HashMap::new());
-                fields.insert(profile.to_string(), FieldMetadata::default());
+                fields_data.insert(profile.to_string(), FieldMetadata::default());
             }
 
+            fields_data.insert(src_name.clone(), FieldMetadata::default());
+
             let default_profile = if profiles.len() == 1 {
-                Some(profiles.iter().next().unwrap().clone().to_string())
+                Some(profiles.first().unwrap().clone())
             } else {
                 None
             };
@@ -235,19 +300,27 @@ pub fn profile(attr: Ts1, item: Ts1) -> Ts1 {
             let mut visibility_entires = HashMap::new();
             let mut token_entires = HashMap::new();
             for profile in profiles {
-                token_entires.insert(profile.to_string(), TokenStream::new());
-                visibility_entires.insert(profile.to_string(), Visibility::Inherited);
+                token_entires.insert(profile.clone(), TokenStream::new());
+                visibility_entires.insert(profile, Visibility::Inherited);
             }
             token_entires.insert(src_name.clone(), TokenStream::new());
 
             for attr in item.attrs {
                 handle_attr(
                     attr,
-                    &mut token_entires,
+                    &mut fields_data,
                     &mut iso_default,
                     &default_profile,
                     &src_name,
                     &mut morphisms,
+                    None,
+                );
+            }
+
+            for (key, field) in fields_data.iter_mut() {
+                std::mem::swap(
+                    &mut field.inner_stream,
+                    token_entires.get_mut(key).expect("memswap"),
                 )
             }
 
@@ -255,100 +328,95 @@ pub fn profile(attr: Ts1, item: Ts1) -> Ts1 {
                 v.extend(item.vis.clone().to_token_stream());
                 v.extend(item.struct_token.to_token_stream());
                 v.extend(Ident::new(k.as_str(), Span::call_site().into()).to_token_stream());
-                v.extend(post_name_generics.clone().to_token_stream());
+                v.extend(impl_generics.clone().to_token_stream());
             }
 
             let mut output = TokenStream::new();
             match item.fields {
                 syn::Fields::Named(fields) => {
-                    let mut grouping_interior = HashMap::with_capacity(token_entires.len());
-                    let mut field_name_destructure = TokenStream::new();
-                    for profile in token_entires.keys() {
-                        grouping_interior.insert(profile.clone(), TokenStream::new());
-                    }
-
                     for field in fields.named.iter() {
+                        let mut limited_fields = Vec::new();
+
                         for attr in &field.attrs {
-                            handle_attr(
+                            if let Some(x) = handle_attr(
                                 attr.clone(),
-                                &mut grouping_interior,
+                                &mut fields_data,
                                 &mut iso_default,
                                 &default_profile,
                                 &src_name,
                                 &mut morphisms,
-                            )
+                                field.ident.as_ref(),
+                            ) {
+                                limited_fields.push(x)
+                            }
                         }
 
-                        let ident = field.ident.as_ref().unwrap();
+                        let (ident, vis, ty) =
+                            (field.ident.as_ref().unwrap(), &field.vis, &field.ty);
 
-                        field_name_destructure.extend(quote! {#ident,});
+                        if limited_fields.len() == 0 {
+                            common_destructure.extend(quote! {#ident,});
+                            common_struct.extend(quote! {#vis #ident : #ty,});
+                        }
 
-                        for profile in grouping_interior.values_mut() {
-                            profile.extend(field.vis.to_token_stream());
-                            profile.extend(field.ident.to_token_stream());
-                            profile.extend(field.colon_token.to_token_stream());
-                            profile.extend(field.ty.to_token_stream());
-                            profile.extend(Punct::new(',', Spacing::Alone).to_token_stream());
+                        for profile_key in limited_fields.iter() {
+                            let m = fields_data
+                                .get_mut(profile_key.to_string().as_str())
+                                .expect("Prof key");
+
+                            m.destructor_stream.extend(quote! {#ident,});
+
+                            m.inner_stream.extend(quote! {#vis #ident : #ty,});
                         }
                     }
 
                     inject_struct_interior(
                         Delimiter::Brace,
-                        grouping_interior,
+                        fields_data,
+                        (common_destructure, common_struct),
                         &mut token_entires,
                         impl_generics,
                         where_clause,
-                        field_name_destructure,
                         post_name_generics,
                         &mut output,
-                        src_name,
-                        src_ident,
                         false,
                         morphisms,
                     );
                 }
                 syn::Fields::Unnamed(fields) => {
-                    let mut grouping_interior = HashMap::with_capacity(token_entires.len());
-                    let mut field_name_destructure = TokenStream::new();
-                    for profile in token_entires.keys() {
-                        grouping_interior.insert(profile.clone(), TokenStream::new());
-                    }
-
                     for (index, field) in fields.unnamed.iter().enumerate() {
                         for attr in &field.attrs {
                             handle_attr(
                                 attr.clone(),
-                                &mut grouping_interior,
+                                &mut fields_data,
                                 &mut iso_default,
                                 &default_profile,
                                 &src_name,
                                 &mut morphisms,
-                            )
+                                None,
+                            );
                         }
 
                         let ident =
                             Ident::new(format!("e{}", index).as_str(), Span::call_site().into());
 
-                        field_name_destructure.extend(quote! {#ident,});
+                        common_destructure.extend(quote! {#ident,});
 
-                        for profile in grouping_interior.values_mut() {
-                            profile.extend(field.vis.to_token_stream());
-                            profile.extend(field.ty.to_token_stream());
-                            profile.extend(Punct::new(',', Spacing::Alone).to_token_stream());
+                        for profile in fields_data.values_mut() {
+                            let (vis, ty) = (&field.vis, &field.ty);
+                            profile.inner_stream.extend(quote! {#vis #ty,})
                         }
                     }
 
                     inject_struct_interior(
                         Delimiter::Parenthesis,
-                        grouping_interior,
+                        fields_data,
+                        (common_destructure, common_struct),
                         &mut token_entires,
                         impl_generics,
                         where_clause,
-                        field_name_destructure,
                         post_name_generics,
                         &mut output,
-                        src_name,
-                        src_ident,
                         true,
                         morphisms,
                     );

@@ -40,4 +40,19 @@ mod classic {
     }
 }
 
+mod transforming {
+    use profile::profile;
+
+    #[profile(Product)]
+    #[iso(#[derive(Debug)])]
+    struct Base<T: Copy + std::ops::Mul<Output = T>> {
+        a: T,
+        b: T,
+
+        #[on()]
+        #[transform(Base Product, a * b)]
+        product: <T as std::ops::Mul>::Output,
+    }
+}
+
 fn main() {}
