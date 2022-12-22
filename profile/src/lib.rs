@@ -88,7 +88,7 @@ fn handle_attr(
                     })
                     .insert(field.to_string(), stream.collect::<TokenStream>());
             }
-            _ => abort!(loc, "Expected the form #[transform(To From, ...)]"),
+            _ => abort!(loc, "Expected the form #[transform(From To, ...)]"),
         }
     } else if id.as_str() == "on" {
         let stream = get_inner_tokens(attr.tokens)
@@ -157,7 +157,7 @@ fn handle_attr(
 }
 
 fn inject_struct_interior(
-    delim: Delimiter,
+    unnamed: bool,
 
     grouping_interior: HashMap<String, FieldMetadata>,
     (common_destructure, common_struct): (TokenStream, TokenStream),
@@ -166,9 +166,13 @@ fn inject_struct_interior(
     where_clause: &syn::WhereClause,
     post_name_generics: syn::TypeGenerics,
     output: &mut TokenStream,
-    semi: bool,
     morphisms: Morphisms,
 ) {
+    let delim = if unnamed {
+        Delimiter::Parenthesis
+    } else {
+        Delimiter::Brace
+    };
     for (profile_name, profile) in grouping_interior.iter() {
         let ungrouped_profile = token_entires
             .get_mut(profile_name)
@@ -183,32 +187,35 @@ fn inject_struct_interior(
             .to_token_stream(),
         );
         ungrouped_profile.extend(where_clause.to_token_stream());
-        if semi {
+        if unnamed {
             ungrouped_profile.extend(quote! {;});
         }
 
         output.extend(ungrouped_profile.clone());
     }
 
+    // TODO: Make ordering of fields cannonical according to how tuples lay them out
     for ((from, to), key_injective) in morphisms {
         let mut transform_inject_stream = TokenStream::new();
 
         for (key, transform) in key_injective {
             let key = Ident::new(key.as_str(), Span::call_site().into());
-            transform_inject_stream.extend(quote! { #key : { #transform }, })
+            if unnamed {
+                transform_inject_stream.extend(quote! { { #transform }, })
+            } else {
+                transform_inject_stream.extend(quote! { #key : { #transform }, })
+            }
         }
 
         transform_inject_stream.extend(common_destructure.clone());
 
         let from_destructure = Group::new(delim, {
-            let mut v = common_destructure.clone();
-            v.extend(
-                grouping_interior
-                    .get(&from)
-                    .expect("From value")
-                    .destructor_stream
-                    .clone(),
-            );
+            let mut v = grouping_interior
+                .get(&from)
+                .expect("From value")
+                .destructor_stream
+                .clone();
+            v.extend(common_destructure.clone());
             v
         });
         let to_destructure = Group::new(delim, transform_inject_stream);
@@ -221,6 +228,7 @@ fn inject_struct_interior(
         output.extend(quote! {
             impl #impl_generics Into<#to #post_name_generics> for #from #post_name_generics #where_clause {
                 fn into(self) -> #to #post_name_generics {
+                    #[allow(unused_variables)]
                     let Self #from_destructure = self;
 
                     #to #to_destructure
@@ -274,7 +282,6 @@ pub fn profile(attr: Ts1, item: Ts1) -> Ts1 {
             let (impl_generics, post_name_generics, where_clause) = item.generics.split_for_impl();
             let where_clause = where_clause.unwrap();
 
-            let src_ident = item.ident.clone();
             let src_name = item.ident.to_string();
 
             let mut fields_data = HashMap::new();
@@ -335,6 +342,9 @@ pub fn profile(attr: Ts1, item: Ts1) -> Ts1 {
             match item.fields {
                 syn::Fields::Named(fields) => {
                     for field in fields.named.iter() {
+                        let (ident, vis, ty) =
+                            (field.ident.as_ref().unwrap(), &field.vis, &field.ty);
+
                         let mut limited_fields = Vec::new();
 
                         for attr in &field.attrs {
@@ -351,27 +361,24 @@ pub fn profile(attr: Ts1, item: Ts1) -> Ts1 {
                             }
                         }
 
-                        let (ident, vis, ty) =
-                            (field.ident.as_ref().unwrap(), &field.vis, &field.ty);
-
-                        if limited_fields.len() == 0 {
+                        if limited_fields.is_empty() {
                             common_destructure.extend(quote! {#ident,});
                             common_struct.extend(quote! {#vis #ident : #ty,});
                         }
 
                         for profile_key in limited_fields.iter() {
-                            let m = fields_data
+                            let metadata = fields_data
                                 .get_mut(profile_key.to_string().as_str())
                                 .expect("Prof key");
 
-                            m.destructor_stream.extend(quote! {#ident,});
+                            metadata.destructor_stream.extend(quote! {#ident,});
 
-                            m.inner_stream.extend(quote! {#vis #ident : #ty,});
+                            metadata.inner_stream.extend(quote! {#vis #ident : #ty,});
                         }
                     }
 
                     inject_struct_interior(
-                        Delimiter::Brace,
+                        false,
                         fields_data,
                         (common_destructure, common_struct),
                         &mut token_entires,
@@ -379,37 +386,51 @@ pub fn profile(attr: Ts1, item: Ts1) -> Ts1 {
                         where_clause,
                         post_name_generics,
                         &mut output,
-                        false,
                         morphisms,
                     );
                 }
                 syn::Fields::Unnamed(fields) => {
                     for (index, field) in fields.unnamed.iter().enumerate() {
+                        let (ident, vis, ty) = (
+                            Ident::new(format!("e{}", index).as_str(), Span::call_site().into()),
+                            &field.vis,
+                            &field.ty,
+                        );
+
+                        let mut limited_fields = Vec::new();
+
                         for attr in &field.attrs {
-                            handle_attr(
+                            if let Some(x) = handle_attr(
                                 attr.clone(),
                                 &mut fields_data,
                                 &mut iso_default,
                                 &default_profile,
                                 &src_name,
                                 &mut morphisms,
-                                None,
-                            );
+                                Some(&ident),
+                            ) {
+                                limited_fields.push(x)
+                            }
                         }
 
-                        let ident =
-                            Ident::new(format!("e{}", index).as_str(), Span::call_site().into());
+                        if limited_fields.is_empty() {
+                            common_destructure.extend(quote! {#ident,});
+                            common_struct.extend(quote! {#vis #ty,});
+                        }
 
-                        common_destructure.extend(quote! {#ident,});
+                        for profile_key in limited_fields.iter() {
+                            let metadata = fields_data
+                                .get_mut(profile_key.to_string().as_str())
+                                .expect("Prof key");
 
-                        for profile in fields_data.values_mut() {
-                            let (vis, ty) = (&field.vis, &field.ty);
-                            profile.inner_stream.extend(quote! {#vis #ty,})
+                            metadata.destructor_stream.extend(quote! {#ident,});
+
+                            metadata.inner_stream.extend(quote! {#vis #ty,});
                         }
                     }
 
                     inject_struct_interior(
-                        Delimiter::Parenthesis,
+                        true,
                         fields_data,
                         (common_destructure, common_struct),
                         &mut token_entires,
@@ -417,7 +438,6 @@ pub fn profile(attr: Ts1, item: Ts1) -> Ts1 {
                         where_clause,
                         post_name_generics,
                         &mut output,
-                        true,
                         morphisms,
                     );
                 }
@@ -432,25 +452,22 @@ pub fn profile(attr: Ts1, item: Ts1) -> Ts1 {
                         );
                     }
 
-                    for (profile_name, profile) in token_entires {
+                    for (_, profile) in token_entires {
                         output.extend(profile);
+                    }
+                    for ((to, from), _) in morphisms {
+                        let (to, from) = (
+                            Ident::new(&to, Span::call_site().into()),
+                            Ident::new(&from, Span::call_site().into()),
+                        );
 
-                        if profile_name != src_name {
-                            let profile_name =
-                                Ident::new(profile_name.as_str(), Span::call_site().into());
-                            output.extend(quote! {
-                                impl Into<#profile_name> for #src_ident {
-                                    fn into(self) -> #profile_name {
-                                        #profile_name
-                                    }
+                        output.extend(quote! {
+                            impl Into<#to> for #from {
+                                fn into(self) -> #to {
+                                    #to
                                 }
-                                impl Into<#src_ident> for #profile_name {
-                                    fn into(self) -> #src_ident {
-                                        #src_ident
-                                    }
-                                }
-                            });
-                        }
+                            }
+                        });
                     }
                 }
             }

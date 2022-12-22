@@ -49,10 +49,23 @@ mod transforming {
         a: T,
         b: T,
 
-        #[on()]
-        #[transform(Base Product, a * b)]
-        product: <T as std::ops::Mul>::Output,
+        #[on(Base)]
+        #[transform(Product Base, a * b)]
+        product: T,
     }
+}
+mod transforming_unnamed {
+    use profile::profile;
+
+    #[profile(Product)]
+    #[iso(#[derive(Debug)])]
+    struct Base<T: Copy + std::ops::Mul<Output = T>>(
+        #[on(Base)]
+        #[transform(Product Base, e1 * e2)]
+        T,
+        T,
+        T,
+    );
 }
 
 fn main() {}
