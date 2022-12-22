@@ -390,6 +390,8 @@ pub fn profile(attr: Ts1, item: Ts1) -> Ts1 {
                     );
                 }
                 syn::Fields::Unnamed(fields) => {
+                    let mut in_opt_partition = true;
+
                     for (index, field) in fields.unnamed.iter().enumerate() {
                         let (ident, vis, ty) = (
                             Ident::new(format!("e{}", index).as_str(), Span::call_site().into()),
@@ -398,7 +400,6 @@ pub fn profile(attr: Ts1, item: Ts1) -> Ts1 {
                         );
 
                         let mut limited_fields = Vec::new();
-
                         for attr in &field.attrs {
                             if let Some(x) = handle_attr(
                                 attr.clone(),
@@ -416,6 +417,12 @@ pub fn profile(attr: Ts1, item: Ts1) -> Ts1 {
                         if limited_fields.is_empty() {
                             common_destructure.extend(quote! {#ident,});
                             common_struct.extend(quote! {#vis #ty,});
+                            in_opt_partition = false;
+                        } else if !in_opt_partition {
+                            abort!(
+                                field.span(),
+                                "Morphic fields must be before all isomorphic fields"
+                            );
                         }
 
                         for profile_key in limited_fields.iter() {
