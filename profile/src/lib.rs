@@ -4,12 +4,29 @@ use std::collections::HashMap;
 use proc_macro::{Span, TokenStream as Ts1};
 use proc_macro2::{Delimiter, Group, TokenStream, TokenTree};
 use proc_macro2::{Ident, Punct, Spacing};
-use proc_macro_error::{abort, proc_macro_error, Diagnostic, Level};
+use proc_macro_error::{abort, proc_macro_error, Diagnostic, Level, ResultExt};
 use quote::quote;
 use quote::ToTokens;
 use syn::parse_macro_input;
 use syn::spanned::Spanned;
 use syn::{Attribute, Visibility};
+
+type Morphisms = HashMap<(String, String), HashMap<String, TokenStream>>;
+
+#[derive(Default, Clone)]
+struct FieldMetadata {
+    pub type_stream: TokenStream,
+    pub destructor_stream: TokenStream,
+}
+
+impl FieldMetadata {
+    pub fn get_type_and_destructor(self, delim: Delimiter) -> (Group, Group) {
+        (
+            Group::new(delim, self.type_stream),
+            Group::new(delim, self.destructor_stream),
+        )
+    }
+}
 
 fn get_inner_tokens(tokens: TokenStream) -> Option<TokenStream> {
     let mut iter = tokens.into_iter();
@@ -27,6 +44,7 @@ fn handle_attr(
     iso_default: &mut bool,
     default_profile: &Option<String>,
     src_name: &String,
+    morphisms: &mut Morphisms,
 ) {
     let id = attr
         .path
@@ -36,10 +54,26 @@ fn handle_attr(
         .map(|s| s.ident.to_string())
         .collect::<String>();
 
+    let loc = attr.span();
+
     if id.as_str() == "iso_toggle" {
         *iso_default ^= true;
+    } else if id.as_str() == "clear_morphisms" {
+        let _ = std::mem::take(morphisms);
+    } else if id.as_str() == "into" {
+        let mut stream = get_inner_tokens(attr.tokens)
+            .ok_or_else(|| abort!(loc, "Expected grouping but this was not provided"))
+            .unwrap()
+            .into_iter();
+
+        match (stream.next(), stream.next(), stream.next()) {
+            (Some(TokenTree::Ident(to)), Some(TokenTree::Ident(from)), None) => {
+                let k = (to.to_string(), from.to_string());
+                morphisms.insert(k, HashMap::default());
+            }
+            _ => abort!(loc, "Expects two indents #[into(From To)]"),
+        }
     } else if id.as_str() == "on" {
-        let loc = attr.span();
         let stream = get_inner_tokens(attr.tokens)
             .ok_or_else(|| abort!(loc, "Expected grouping but this was not provided"))
             .unwrap()
@@ -106,6 +140,7 @@ fn inject_struct_interior(
     src_name: String,
     src_ident: Ident,
     semi: bool,
+    morphisms: Morphisms,
 ) {
     let field_names = Group::new(delim, field_name_destructure);
     for (profile_name, profile) in grouping_interior {
@@ -120,25 +155,17 @@ fn inject_struct_interior(
         let profile_name_ident = Ident::new(profile_name.as_str(), Span::call_site().into());
 
         output.extend(ungrouped_profile.clone());
+    }
+    for ((from, to), key_injective) in morphisms {
+        output.extend(quote! {
+            impl #impl_generics Into<#to #post_name_generics> for #from #post_name_generics #where_clause {
+                fn into(self) -> #to #post_name_generics {
+                    let Self #field_names = self;
 
-        if profile_name != src_name {
-            output.extend(quote! {
-                impl #impl_generics Into<#profile_name_ident #post_name_generics> for #src_ident #post_name_generics #where_clause {
-                    fn into(self) -> #profile_name_ident #post_name_generics {
-                        let Self #field_names = self;
-
-                        #profile_name_ident #field_names
-                    }
+                    #to #field_names
                 }
-                impl #impl_generics Into<#src_ident #post_name_generics> for #profile_name_ident #post_name_generics #where_clause {
-                    fn into(self) -> #src_ident #post_name_generics {
-                        let Self #field_names = self;
-
-                        #src_ident #field_names
-                    }
-                }
-            });
-        }
+            }
+        })
     }
 }
 
@@ -189,11 +216,14 @@ pub fn profile(attr: Ts1, item: Ts1) -> Ts1 {
             let src_ident = item.ident.clone();
             let src_name = item.ident.to_string();
 
-            let mut morphisms: HashMap<(String, String), HashMap<String, TokenStream>> =
-                HashMap::new();
+            let mut fields = HashMap::new();
+
+            let mut morphisms: Morphisms = HashMap::new();
 
             for profile in profiles.iter() {
                 morphisms.insert((profile.to_string(), src_name.clone()), HashMap::new());
+                morphisms.insert((src_name.clone(), profile.to_string()), HashMap::new());
+                fields.insert(profile.to_string(), FieldMetadata::default());
             }
 
             let default_profile = if profiles.len() == 1 {
@@ -217,6 +247,7 @@ pub fn profile(attr: Ts1, item: Ts1) -> Ts1 {
                     &mut iso_default,
                     &default_profile,
                     &src_name,
+                    &mut morphisms,
                 )
             }
 
@@ -244,6 +275,7 @@ pub fn profile(attr: Ts1, item: Ts1) -> Ts1 {
                                 &mut iso_default,
                                 &default_profile,
                                 &src_name,
+                                &mut morphisms,
                             )
                         }
 
@@ -272,6 +304,7 @@ pub fn profile(attr: Ts1, item: Ts1) -> Ts1 {
                         src_name,
                         src_ident,
                         false,
+                        morphisms,
                     );
                 }
                 syn::Fields::Unnamed(fields) => {
@@ -289,6 +322,7 @@ pub fn profile(attr: Ts1, item: Ts1) -> Ts1 {
                                 &mut iso_default,
                                 &default_profile,
                                 &src_name,
+                                &mut morphisms,
                             )
                         }
 
@@ -316,6 +350,7 @@ pub fn profile(attr: Ts1, item: Ts1) -> Ts1 {
                         src_name,
                         src_ident,
                         true,
+                        morphisms,
                     );
                 }
                 syn::Fields::Unit => {
