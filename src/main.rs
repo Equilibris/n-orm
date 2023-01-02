@@ -68,4 +68,16 @@ mod transforming_unnamed {
     );
 }
 
+mod collection {
+    use collection_macro::coll;
+    use mongodb::bson::oid::ObjectId;
+
+    #[coll(mongo : user)]
+    #[coll(index(single hello))]
+    struct User {
+        #[serde(rename = "_id")]
+        id: ObjectId,
+    }
+}
+
 fn main() {}
