@@ -226,15 +226,25 @@ fn inject_struct_interior(
         );
 
         output.extend(quote! {
-            impl #impl_generics Into<#to #post_name_generics> for #from #post_name_generics #where_clause {
-                fn into(self) -> #to #post_name_generics {
+            impl #impl_generics From<#from #post_name_generics> for #to #post_name_generics #where_clause {
+                fn from(v: #from #post_name_generics) -> Self {
                     #[allow(unused_variables)]
-                    let Self #from_destructure = self;
+                    let #from #from_destructure = v;
 
                     #to #to_destructure
                 }
             }
         })
+        // output.extend(quote! {
+        //     impl #impl_generics Into<#to #post_name_generics> for #from #post_name_generics #where_clause {
+        //         fn into(self) -> #to #post_name_generics {
+        //             #[allow(unused_variables)]
+        //             let Self #from_destructure = self;
+
+        //             #to #to_destructure
+        //         }
+        //     }
+        // })
     }
 }
 
@@ -469,8 +479,8 @@ pub fn profile(attr: Ts1, item: Ts1) -> Ts1 {
                         );
 
                         output.extend(quote! {
-                            impl Into<#to> for #from {
-                                fn into(self) -> #to {
+                            impl From<#from> for #to {
+                                fn from(_: #from) -> Self {
                                     #to
                                 }
                             }

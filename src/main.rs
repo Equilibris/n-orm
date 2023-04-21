@@ -16,6 +16,7 @@ mod specified_base {
 }
 mod multiprofile {
     use profile::profile;
+
     #[profile(A B)]
     #[iso_toggle]
     #[derive(Clone)]
@@ -49,8 +50,8 @@ mod transforming {
         a: T,
         b: T,
 
-        #[on(Base)]
-        #[transform(Product Base, a * b)]
+        #[on(Product)]
+        #[transform(Base Product, a * b)]
         product: T,
     }
 }
@@ -58,14 +59,29 @@ mod transforming_unnamed {
     use profile::profile;
 
     #[profile(Product)]
-    #[iso(#[derive(Debug)])]
+    #[iso(#[derive(Debug, PartialEq, Eq, Clone)])]
     struct Base<T: Copy + std::ops::Mul<Output = T>>(
-        #[on(Base)]
-        #[transform(Product Base, e1 * e2)]
+        #[on(Product)]
+        #[transform(Base Product, e1 * e2)]
         T,
         T,
         T,
     );
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        #[test]
+        fn transforming() {
+            let v = Base(1, 10);
+
+            let z: Product<_> = v.clone().into();
+
+            assert_eq!(z, Product(10, 1, 10));
+            assert_eq!(v, Base::from(z));
+        }
+    }
 }
 
 mod collection {
@@ -73,7 +89,7 @@ mod collection {
     use mongodb::bson::oid::ObjectId;
 
     #[coll(mongo : user)]
-    #[coll(index(single hello))]
+    // #[coll(index(single hello))]
     struct User {
         #[serde(rename = "_id")]
         id: ObjectId,
