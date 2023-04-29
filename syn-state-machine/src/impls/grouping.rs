@@ -59,20 +59,20 @@ pub enum SpecifiedGroupError<T: std::error::Error> {
 
 macro_rules! specified_group {
     ($name:ident, $machine:ident, $delim_ty: path) => {
-        pub struct $name<T: L2Parsable>(pub SmOutput<T>);
+        pub struct $name<T: Parsable>(pub SmOutput<T>);
 
-        impl<T: L2Parsable> L2Parsable for $name<T> {
+        impl<T: Parsable> Parsable for $name<T> {
             type StateMachine = $machine<T>;
         }
 
-        pub struct $machine<T: L2Parsable>(Option<T::StateMachine>);
-        impl<T: L2Parsable> Default for $machine<T> {
+        pub struct $machine<T: Parsable>(Option<T::StateMachine>);
+        impl<T: Parsable> Default for $machine<T> {
             fn default() -> Self {
                 Self(Default::default())
             }
         }
 
-        impl<T: L2Parsable> StateMachine for $machine<T> {
+        impl<T: Parsable> StateMachine for $machine<T> {
             type Output = $name<T>;
             type Error = SpecifiedGroupError<TupleError<SmError<T>, TerminateError, SmOutput<T>>>;
 

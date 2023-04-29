@@ -30,7 +30,7 @@ impl Parsable for Content {
     > as Parsable>::StateMachine;
 }
 
-#[proc_macro_derive(L2Parsable, attributes(parse))]
+#[proc_macro_derive(Parsable, attributes(parse))]
 pub fn l2parsable(input: Ts1) -> Ts1 {
     input
 }

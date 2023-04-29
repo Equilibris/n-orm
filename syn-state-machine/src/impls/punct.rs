@@ -107,7 +107,7 @@ macro_rules! spaced_punct {
         #[derive(Debug, Clone)]
         pub struct $fixed_name<const PUNCT: char>;
 
-        impl<const PUNCT: char> L2Parsable for $fixed_name<PUNCT> {
+        impl<const PUNCT: char> Parsable for $fixed_name<PUNCT> {
             type StateMachine = $fixed_machine_name<PUNCT>;
         }
 
@@ -145,7 +145,7 @@ macro_rules! spaced_punct {
         #[derive(Clone, Default)]
         pub struct $machine_name;
 
-        impl L2Parsable for $name {
+        impl Parsable for $name {
             type StateMachine = $machine_name;
         }
 

@@ -134,11 +134,11 @@ mod higher_order_tuple {
                     ($($i,)+ zz)
                 }
             }
-            impl<$($t : L2Parsable,)+ ZZ: L2Parsable> L2Parsable for ($($t,)+ ZZ) {
+            impl<$($t : Parsable,)+ ZZ: Parsable> Parsable for ($($t,)+ ZZ) {
                 type StateMachine= <MapOut<
                     (($($t,)+), ZZ),
                     ($(SmOutput<$t>,)+ SmOutput<ZZ>),
-                > as L2Parsable>::StateMachine;
+                > as Parsable>::StateMachine;
             }
         };
     }
