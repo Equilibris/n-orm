@@ -129,6 +129,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "collection"
+version = "0.1.0"
+dependencies = [
+ "collection-macro",
+ "mongodb",
+ "serde",
+]
+
+[[package]]
 name = "collection-macro"
 version = "0.1.0"
 dependencies = [
@@ -269,6 +278,12 @@ dependencies = [
  "crypto-common",
  "subtle",
 ]
+
+[[package]]
+name = "either"
+version = "1.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7fcaabb2fef8c910e7f4c7ce9f67a1283a1715879a7c230ca9d6d1ae31f16d91"
 
 [[package]]
 name = "enum-as-inner"
@@ -674,9 +689,10 @@ dependencies = [
 name = "n-orm"
 version = "0.1.0"
 dependencies = [
- "collection-macro",
+ "collection",
  "mongodb",
  "profile",
+ "serde",
  "thiserror",
 ]
 
@@ -1133,6 +1149,24 @@ dependencies = [
  "proc-macro2",
  "quote",
  "unicode-ident",
+]
+
+[[package]]
+name = "syn-state-machine"
+version = "0.1.0"
+dependencies = [
+ "either",
+ "proc-macro2",
+ "quote",
+ "thiserror",
+]
+
+[[package]]
+name = "syn-state-machine-macro"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "syn-state-machine",
 ]
 
 [[package]]

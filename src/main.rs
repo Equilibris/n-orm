@@ -1,3 +1,4 @@
+#![feature(async_fn_in_trait)]
 mod simple {
     use profile::profile;
     #[profile(Copyable)]
@@ -85,14 +86,36 @@ mod transforming_unnamed {
 }
 
 mod collection {
-    use collection_macro::coll;
+    use collection::Document;
     use mongodb::bson::oid::ObjectId;
+    use serde::Deserialize;
+    use serde::Serialize;
 
-    #[coll(mongo : user)]
-    // #[coll(index(single hello))]
+    #[derive(Serialize, Deserialize, Document)]
+    #[coll(UserColl users)]
+    #[coll(index(compound tag_name, sparse))]
+    #[coll(option(collection_sharing))]
     struct User {
         #[serde(rename = "_id")]
         id: ObjectId,
+
+        #[coll(index(single email, unique, type=Text))]
+        email: String,
+
+        #[coll(index(compound tag_name))]
+        name: String,
+        #[coll(index(compound tag_name))]
+        tag: u16,
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        #[test]
+        fn basic_tests() {
+            todo!()
+        }
     }
 }
 
