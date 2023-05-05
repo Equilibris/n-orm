@@ -34,8 +34,8 @@ impl<A: StateMachine> VecMachine<A> {
             match machine.drive(&history[len - rl]) {
                 Continue(c) => machine = c,
                 Break(Ok((ok, backtrack))) => {
-                    rl += backtrack + 1;
-                    checkpoint = rl - 1;
+                    rl += backtrack;
+                    checkpoint = rl;
 
                     contents.push(ok);
                     machine = A::default();
@@ -150,6 +150,18 @@ mod tests {
     use crate::*;
 
     #[test]
+    fn it_matches_catch_all() {
+        parse::<Vec<TokenTree>>(quote::quote! { r#hello hello struct _ 'a' { "hi" }}).unwrap();
+    }
+
+    #[test]
+    fn it_matches_comments() {
+        let (v, l) = parse::<Vec<TokenTree>>(quote::quote! { /* Comment */}).unwrap();
+        assert_eq!(v.len(), 0);
+        assert_eq!(l, 0);
+    }
+
+    #[test]
     fn it_matches_basic_iteration() {
         let (ls, l) = parse::<Vec<Ident>>(quote::quote! { hello world hi }).unwrap();
 
@@ -164,10 +176,11 @@ mod tests {
         assert_eq!(l, 1);
         assert_eq!(ls.len(), 1);
     }
+
     #[test]
     fn it_can_work_on_individual_backtracks() {
         let (ls, l) =
-            parse::<Vec<(Ident, Option<Punct>)>>(quote::quote! { hello world hi }).unwrap();
+            parse::<Vec<(Ident, Option<Punct>)>>(quote::quote! { hello < world hi }).unwrap();
 
         assert_eq!(l, 0);
         assert_eq!(ls.len(), 3);

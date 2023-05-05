@@ -20,8 +20,8 @@ impl<A: StateMachine, B: StateMachine> Default for EitherMachine<A, B> {
 }
 
 #[derive(Clone, thiserror::Error, Debug)]
-#[error("Both paths failed {} {}", .0, .1)]
-pub struct EitherParsingError<A: std::error::Error, B: std::error::Error>(A, B);
+#[error("e1: ({}) e2: ({})", .0, .1)]
+pub struct EitherParsingError<A: std::error::Error, B: std::error::Error>(pub A, pub B);
 
 impl<A: StateMachine, B: StateMachine> StateMachine for EitherMachine<A, B> {
     type Output = Either<A::Output, B::Output>;

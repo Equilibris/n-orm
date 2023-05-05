@@ -1,3 +1,5 @@
+use std::marker::PhantomData;
+
 use proc_macro2::Delimiter;
 
 use crate::*;
@@ -9,7 +11,7 @@ impl<T: Parsable> Parsable for Group<T> {
     type StateMachine = GroupMachine<T>;
 }
 
-pub struct GroupMachine<T: Parsable>(Option<T::StateMachine>);
+pub struct GroupMachine<T: Parsable>(PhantomData<T>);
 impl<T: Parsable> Default for GroupMachine<T> {
     fn default() -> Self {
         Self(Default::default())
@@ -28,12 +30,12 @@ pub enum GroupError<T: std::error::Error> {
 
 impl<T: Parsable> StateMachine for GroupMachine<T> {
     type Output = Group<T>;
-    type Error = GroupError<TupleError<SmError<T>, TerminateError, SmOutput<T>>>;
+    type Error = GroupError<TerminalError<SmError<T>>>;
 
     fn drive(self, val: &TokenTree) -> ControlFlow<SmResult<Self::Output, Self::Error>, Self> {
         ControlFlow::Break(match val {
-            TokenTree::Group(g) => match parse::<(T, Terminate)>(g.stream()) {
-                Ok(((a, _), _)) => Ok((Group(a, g.delimiter()), 0)),
+            TokenTree::Group(g) => match parse_terminal::<T>(g.stream()) {
+                Ok(a) => Ok((Group(a, g.delimiter()), 0)),
                 Err(e) => Err(GroupError::NestedError(e)),
             },
             e => Err(GroupError::InvalidToken(e.clone())),
@@ -59,13 +61,13 @@ pub enum SpecifiedGroupError<T: std::error::Error> {
 
 macro_rules! specified_group {
     ($name:ident, $machine:ident, $delim_ty: path) => {
-        pub struct $name<T: Parsable>(pub SmOutput<T>);
+        pub struct $name<T: Parsable>(PhantomData<T>);
 
         impl<T: Parsable> Parsable for $name<T> {
             type StateMachine = $machine<T>;
         }
 
-        pub struct $machine<T: Parsable>(Option<T::StateMachine>);
+        pub struct $machine<T: Parsable>(PhantomData<T>);
         impl<T: Parsable> Default for $machine<T> {
             fn default() -> Self {
                 Self(Default::default())
@@ -73,8 +75,8 @@ macro_rules! specified_group {
         }
 
         impl<T: Parsable> StateMachine for $machine<T> {
-            type Output = $name<T>;
-            type Error = SpecifiedGroupError<TupleError<SmError<T>, TerminateError, SmOutput<T>>>;
+            type Output = SmOutput<T>;
+            type Error = SpecifiedGroupError<TerminalError<SmError<T>>>;
 
             fn drive(
                 self,
@@ -83,8 +85,8 @@ macro_rules! specified_group {
                 ControlFlow::Break(match val {
                     TokenTree::Group(g) => {
                         if g.delimiter() == $delim_ty {
-                            match parse::<(T, Terminate)>(g.stream()) {
-                                Ok(((a, _), _)) => Ok(($name(a), 0)),
+                            match parse_terminal::<T>(g.stream()) {
+                                Ok(a) => Ok((a, 0)),
                                 Err(e) => Err(SpecifiedGroupError::NestedError(e)),
                             }
                         } else {
@@ -116,14 +118,17 @@ mod tests {
     #[test]
     fn it_matches_general_delim() {
         let ((_, Group(content, _), _), l) =
-            parse::<(Ident, Group<Ident>, Ident)>(quote::quote! { hello (world) hi }).unwrap();
+            match parse::<(Ident, Group<Ident>, Ident)>(quote::quote! { hello (world) hi }) {
+                Ok(o) => o,
+                Err(e) => panic!("{}", e),
+            };
 
         assert_eq!(l, 0);
         assert_eq!(content.to_string().as_str(), "world");
     }
     #[test]
     fn it_matches_parenthesis() {
-        let ((_, Parenthesis(content), _), l) =
+        let ((_, content, _), l) =
             parse::<(Ident, Parenthesis<Ident>, Ident)>(quote::quote! { hello (world) hi })
                 .unwrap();
 

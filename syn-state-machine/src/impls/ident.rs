@@ -1,16 +1,28 @@
 use crate::*;
 
 #[derive(Debug, Clone)]
-pub struct FIdent<const IDENT: &'static str>;
+pub struct FIdent<const IDENT: &'static str>(pub Ident);
 
-impl<const PUNCT: &'static str> Parsable for FIdent<PUNCT> {
-    type StateMachine = FixedIdentMachine<PUNCT>;
+impl<const IDENT: &'static str> From<Ident> for FIdent<IDENT> {
+    fn from(value: Ident) -> Self {
+        Self(value)
+    }
+}
+#[allow(clippy::from_over_into)]
+impl<const IDENT: &'static str> Into<Ident> for FIdent<IDENT> {
+    fn into(self) -> Ident {
+        self.0
+    }
+}
+
+impl<const IDENT: &'static str> Parsable for FIdent<IDENT> {
+    type StateMachine = FixedIdentMachine<IDENT>;
 }
 
 #[derive(Default)]
 pub struct FixedIdentMachine<const IDENT: &'static str>;
 
-#[derive(Debug, Clone, thiserror::Error, Default)]
+#[derive(Debug, thiserror::Error, Default)]
 pub enum FixedIdentError<const IDENT: &'static str> {
     #[error("Expected ident \"{}\" but got {}", IDENT, .0)]
     Val(TokenTree),
@@ -26,7 +38,7 @@ impl<const IDENT: &'static str> StateMachine for FixedIdentMachine<IDENT> {
     fn drive(self, val: &TokenTree) -> ControlFlow<SmResult<Self::Output, Self::Error>, Self> {
         match val {
             TokenTree::Ident(p) if p.to_string().as_str() == IDENT => {
-                ControlFlow::Break(Ok((FIdent::<IDENT>, 0)))
+                ControlFlow::Break(Ok((FIdent::<IDENT>(p.clone()), 0)))
             }
             _ => ControlFlow::Break(Err(FixedIdentError::Val(val.clone()))),
         }
@@ -77,16 +89,16 @@ mod tests {
 
     #[test]
     fn it_matches_only() {
-        let v = parse::<Ident>(quote::quote! { id }).unwrap();
+        let v = parse_terminal::<Ident>(quote::quote! { id }).unwrap();
 
-        assert_eq!(v.0.to_string().as_str(), "id");
+        assert_eq!(v.to_string().as_str(), "id");
     }
     #[test]
     fn it_matches_fixed() {
-        parse::<FIdent<"id">>(quote::quote! { id }).unwrap();
+        parse_terminal::<FIdent<"id">>(quote::quote! { id }).unwrap();
     }
     #[test]
     fn it_fails_on_incorrect() {
-        parse::<FIdent<"id">>(quote::quote! { ident }).unwrap_err();
+        parse_terminal::<FIdent<"id">>(quote::quote! { ident }).unwrap_err();
     }
 }

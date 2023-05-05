@@ -10,3 +10,5 @@ proc-macro2 = "1"
 either = "1"
 thiserror = "1"
 quote = "1"
+litrs = "0.4"
+

@@ -11,4 +11,5 @@ proc-macro = true
 [dependencies]
 syn-state-machine = { path = ".." }
 proc-macro2 = "1"
+quote = "1"
 

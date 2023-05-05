@@ -39,6 +39,14 @@ mod tests {
     fn it_matches_only() {
         let p = parse::<Option<Ident>>(quote::quote! { < }).unwrap();
 
-        println!("{:#?}", p);
+        assert_eq!(p.0, None);
+        assert_eq!(p.1, 1);
+    }
+    #[test]
+    fn it_returns_the_correct_length() {
+        let p = parse::<Option<(Ident, Ident)>>(quote::quote! { hi < }).unwrap();
+
+        assert_eq!(p.0, None);
+        assert_eq!(p.1, 2);
     }
 }

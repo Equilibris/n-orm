@@ -2,6 +2,8 @@ use crate::*;
 
 pub use proc_macro2::TokenTree;
 
+pub type Tokens = Vec<TokenTree>;
+
 impl Parsable for TokenTree {
     type StateMachine = TokenTreeMachine;
 }

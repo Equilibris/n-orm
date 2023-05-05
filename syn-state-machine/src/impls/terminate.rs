@@ -8,10 +8,10 @@ pub struct Terminate;
 pub struct TerminateError(TokenTree);
 
 impl Parsable for Terminate {
-    type StateMachine = Terminate;
+    type StateMachine = Self;
 }
 impl StateMachine for Terminate {
-    type Output = Terminate;
+    type Output = Self;
     type Error = TerminateError;
 
     fn drive(self, val: &TokenTree) -> ControlFlow<SmResult<Self::Output, Self::Error>, Self> {
@@ -19,6 +19,6 @@ impl StateMachine for Terminate {
     }
 
     fn terminate(self) -> SmResult<Self::Output, Self::Error> {
-        Ok((Terminate, 0))
+        Ok((Self, 0))
     }
 }

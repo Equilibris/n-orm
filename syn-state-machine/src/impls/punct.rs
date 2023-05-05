@@ -204,39 +204,46 @@ mod tests {
 
     #[test]
     fn it_matches_only() {
-        let v = parse::<Punct>(quote::quote! { < }).unwrap();
+        let v = parse_terminal::<Punct>(quote::quote! { < }).unwrap();
 
-        assert_eq!(v.0.as_char(), '<');
+        assert_eq!(v.as_char(), '<');
     }
     #[test]
     fn it_matches_fixed() {
-        parse::<FPunct<'<'>>(quote::quote! { < }).unwrap();
+        parse_terminal::<FPunct<'<'>>(quote::quote! { < }).unwrap();
     }
     #[test]
     fn it_matches_dollar() {
-        parse::<FPunct<'$'>>(quote::quote! { $ }).unwrap();
-        parse::<(FPunct<'$'>, FPunct<'$'>)>(quote::quote! { $$ }).unwrap();
+        parse_terminal::<FPunct<'$'>>(quote::quote! { $ }).unwrap();
+        parse_terminal::<(FPunct<'$'>, FPunct<'$'>)>(quote::quote! { $$ }).unwrap();
     }
     #[test]
     fn it_fails_on_incorrect() {
-        parse::<FIdent<"id">>(quote::quote! { ident }).unwrap_err();
+        parse_terminal::<FIdent<"id">>(quote::quote! { ident }).unwrap_err();
     }
 
     #[test]
     fn it_matches_joint() {
-        parse::<(FJointPunct<'\''>, Ident)>(quote::quote! { 'hello }).unwrap();
-        parse::<(FAlonePunct<'\''>, Ident)>(quote::quote! { 'hello }).unwrap_err();
+        parse_terminal::<(FJointPunct<'\''>, Ident)>(quote::quote! { 'hello }).unwrap();
+        parse_terminal::<(FAlonePunct<'\''>, Ident)>(quote::quote! { 'hello }).unwrap_err();
     }
     #[test]
     fn it_matches_alone() {
-        parse::<(FAlonePunct<'<'>, Ident)>(quote::quote! { < hello }).unwrap();
-        parse::<(FJointPunct<'<'>, Ident)>(quote::quote! { < hello }).unwrap_err();
+        parse_terminal::<(FAlonePunct<'<'>, Ident)>(quote::quote! { < hello }).unwrap();
+        parse_terminal::<(FJointPunct<'<'>, Ident)>(quote::quote! { < hello }).unwrap_err();
     }
 
     #[test]
     fn it_matches_both() {
-        parse::<(FJointPunct<'<'>, FAlonePunct<'='>)>(quote::quote! { <= }).unwrap();
-        parse::<(FJointPunct<'<'>, FAlonePunct<'='>, FAlonePunct<'='>)>(quote::quote! { <== })
-            .unwrap();
+        parse_terminal::<(FJointPunct<'<'>, FAlonePunct<'='>)>(quote::quote! { <= }).unwrap();
+        parse_terminal::<(FJointPunct<'<'>, FAlonePunct<'='>, FAlonePunct<'='>)>(
+            quote::quote! { <== },
+        )
+        .unwrap();
+    }
+
+    #[test]
+    fn dollar_crate() {
+        parse_terminal::<(FPunct<'$'>, FIdent<"crate">)>(quote::quote!( $crate )).unwrap();
     }
 }

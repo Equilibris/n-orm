@@ -24,13 +24,15 @@ impl SmFrom<Either<(FJointPunct<'$'>, Ident), Either<(FJointPunct<'$'>, Punct), 
 }
 
 impl Parsable for Content {
-    type StateMachine = <MapOut<
-        Either<(FJointPunct<'$'>, Ident), Either<(FJointPunct<'$'>, Punct), TokenTree>>,
-        Content,
-    > as Parsable>::StateMachine;
+    type StateMachine = Sm<
+        MapOut<
+            Either<(FJointPunct<'$'>, Ident), Either<(FJointPunct<'$'>, Punct), TokenTree>>,
+            Content,
+        >,
+    >;
 }
 
 #[proc_macro_derive(Parsable, attributes(parse))]
 pub fn l2parsable(input: Ts1) -> Ts1 {
-    input
+    todo!()
 }

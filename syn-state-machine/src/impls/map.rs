@@ -1,64 +1,53 @@
-use std::marker::PhantomData;
-
 use crate::*;
 
-pub trait SmFrom<A> {
-    fn sm_from(src: A) -> Self;
+pub trait MappedParse {
+    type Source: Parsable;
+
+    type Output;
+    type Error: std::error::Error;
+
+    fn map(
+        src: SmOutput<Self::Source>,
+    ) -> Result<<Self as MappedParse>::Output, <Self as MappedParse>::Error>;
+    fn map_err(src: SmError<Self::Source>) -> <Self as MappedParse>::Error;
 }
 
-pub struct MapOut<A: Parsable, B>(PhantomData<A>, PhantomData<B>);
-pub struct MapErr<A: Parsable, B: std::error::Error>(PhantomData<A>, PhantomData<B>);
+pub struct MappedMachine<T: MappedParse>(Sm<T::Source>);
 
-pub struct MapOutMachine<A, V>(A, PhantomData<V>);
-pub struct MapErrMachine<A, V>(A, PhantomData<(A, V)>);
-impl<A: Default, V> Default for MapOutMachine<A, V> {
-    fn default() -> Self {
-        Self(Default::default(), Default::default())
+impl<T: MappedParse> MappedMachine<T> {
+    fn map(
+        src: SmResult<SmOutput<T::Source>, SmError<T::Source>>,
+    ) -> SmResult<T::Output, T::Error> {
+        match src {
+            Err(e) => Err(T::map_err(e)),
+            Ok((ok, rl)) => match T::map(ok) {
+                Ok(ok) => Ok((ok, rl)),
+                Err(e) => Err(e),
+            },
+        }
     }
 }
-impl<A: Default, V> Default for MapErrMachine<A, V> {
+
+impl<T: MappedParse> Parsable for T {
+    type StateMachine = MappedMachine<T>;
+}
+
+impl<T: MappedParse> Default for MappedMachine<T> {
     fn default() -> Self {
-        Self(Default::default(), Default::default())
+        Self(Default::default())
     }
 }
 
-impl<A: Parsable, V: SmFrom<SmOutput<A>>> Parsable for MapOut<A, V> {
-    type StateMachine = MapOutMachine<A::StateMachine, V>;
-}
-impl<A: Parsable, V: std::error::Error + SmFrom<SmError<A>>> Parsable for MapErr<A, V> {
-    type StateMachine = MapErrMachine<A::StateMachine, V>;
-}
-
-impl<A: StateMachine, V: SmFrom<A::Output>> StateMachine for MapOutMachine<A, V> {
-    type Output = V;
-    type Error = A::Error;
+impl<T: MappedParse> StateMachine for MappedMachine<T> {
+    type Output = T::Output;
+    type Error = T::Error;
 
     fn drive(self, val: &TokenTree) -> ControlFlow<SmResult<Self::Output, Self::Error>, Self> {
-        self.0
-            .drive(val)
-            .map_continue(|v| Self(v, PhantomData))
-            .map_break(|v| v.map(|(a, r)| (V::sm_from(a), r)))
+        self.0.drive(val).map_continue(Self).map_break(Self::map)
     }
 
     fn terminate(self) -> SmResult<Self::Output, Self::Error> {
-        self.0.terminate().map(|(a, r)| (V::sm_from(a), r))
-    }
-}
-impl<A: StateMachine, V: std::error::Error + SmFrom<A::Error>> StateMachine
-    for MapErrMachine<A, V>
-{
-    type Output = A::Output;
-    type Error = V;
-
-    fn drive(self, val: &TokenTree) -> ControlFlow<SmResult<Self::Output, Self::Error>, Self> {
-        self.0
-            .drive(val)
-            .map_continue(|v| Self(v, PhantomData))
-            .map_break(|v| v.map_err(V::sm_from))
-    }
-
-    fn terminate(self) -> SmResult<Self::Output, Self::Error> {
-        self.0.terminate().map_err(V::sm_from)
+        Self::map(self.0.terminate())
     }
 }
 
@@ -70,13 +59,24 @@ mod tests {
     fn it_maps() {
         struct V(String);
 
-        impl SmFrom<proc_macro2::Ident> for V {
-            fn sm_from(src: proc_macro2::Ident) -> Self {
-                Self(src.to_string())
+        impl MappedParse for V {
+            type Source = Ident;
+
+            type Output = Self;
+            type Error = SmError<Self::Source>;
+
+            fn map(
+                src: SmOutput<Self::Source>,
+            ) -> Result<<Self as MappedParse>::Output, <Self as MappedParse>::Error> {
+                Ok(V(src.to_string()))
+            }
+
+            fn map_err(src: SmError<Self::Source>) -> <Self as MappedParse>::Error {
+                src
             }
         }
 
-        let (V(v), _) = parse::<MapOut<Ident, V>>(quote::quote! { hello }).unwrap();
+        let (V(v), _) = parse::<V>(quote::quote! { hello }).unwrap();
 
         assert_eq!(v.as_str(), "hello")
     }
