@@ -17,17 +17,14 @@ impl MappedParse for UseTree {
             Option<(SimplePathOrNone, DoubleColon)>,
             Brace<(Interlace<UseTree, Comma>, Option<Comma>)>,
         ),
-        Either<
-            (Option<(SimplePathOrNone, DoubleColon)>, Star),
-            (SimplePath, Option<(KwAs, IdentifierUnder)>),
-        >,
+        Either<(Option<(SimplePathOrNone, DoubleColon)>, Star), (SimplePath, AsClause)>,
     >;
 
     type Output = Self;
-    type Error = SmError<Self::Source>;
+    type Error = SmErr<Self::Source>;
 
     fn map(
-        src: SmOutput<Self::Source>,
+        src: SmOut<Self::Source>,
     ) -> Result<<Self as MappedParse>::Output, <Self as MappedParse>::Error> {
         use Either::*;
 
@@ -49,7 +46,7 @@ impl MappedParse for UseTree {
         })
     }
 
-    fn map_err(src: SmError<Self::Source>) -> <Self as MappedParse>::Error {
+    fn map_err(src: SmErr<Self::Source>) -> <Self as MappedParse>::Error {
         src
     }
 }
@@ -60,15 +57,15 @@ impl MappedParse for Use {
     type Source = (KwUse, UseTree, Semi);
 
     type Output = UseTree;
-    type Error = SmError<Self::Source>;
+    type Error = SmErr<Self::Source>;
 
     fn map(
-        src: SmOutput<Self::Source>,
+        src: SmOut<Self::Source>,
     ) -> Result<<Self as MappedParse>::Output, <Self as MappedParse>::Error> {
         Ok(src.1)
     }
 
-    fn map_err(src: SmError<Self::Source>) -> <Self as MappedParse>::Error {
+    fn map_err(src: SmErr<Self::Source>) -> <Self as MappedParse>::Error {
         src
     }
 }
@@ -85,7 +82,7 @@ mod tests {
                 for p in a.segments {
                     match p {
                         Segment::Id(a) => source.push(a),
-                        Segment::DCrate => todo!(),
+                        Segment::DCrate => unimplemented!(),
                     }
                 }
             }
@@ -93,7 +90,7 @@ mod tests {
                 for p in name.segments {
                     match p {
                         Segment::Id(a) => source.push(a),
-                        Segment::DCrate => todo!(),
+                        Segment::DCrate => unimplemented!(),
                     }
                 }
 
@@ -105,7 +102,7 @@ mod tests {
                 for p in s.segments {
                     match p {
                         Segment::Id(a) => source.push(a),
-                        Segment::DCrate => todo!(),
+                        Segment::DCrate => unimplemented!(),
                     }
                 }
 

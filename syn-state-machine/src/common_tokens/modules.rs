@@ -11,7 +11,7 @@ pub enum Module<Content: Parsable = Tokens, Inner: Parsable = Tokens> {
 
         r#unsafe: bool,
         inner_attrs: InnerAttrs<Inner>,
-        content: SmOutput<Content>,
+        content: SmOut<Content>,
     },
 }
 
@@ -24,10 +24,10 @@ impl<Content: Parsable, Inner: Parsable> MappedParse for Module<Content, Inner> 
     );
 
     type Output = Self;
-    type Error = SmError<Self::Source>;
+    type Error = SmErr<Self::Source>;
 
     fn map(
-        src: SmOutput<Self::Source>,
+        src: SmOut<Self::Source>,
     ) -> Result<<Self as MappedParse>::Output, <Self as MappedParse>::Error> {
         let r#unsafe = src.0.is_some();
         let id = src.2;
@@ -43,7 +43,7 @@ impl<Content: Parsable, Inner: Parsable> MappedParse for Module<Content, Inner> 
         })
     }
 
-    fn map_err(src: SmError<Self::Source>) -> <Self as MappedParse>::Error {
+    fn map_err(src: SmErr<Self::Source>) -> <Self as MappedParse>::Error {
         src
     }
 }

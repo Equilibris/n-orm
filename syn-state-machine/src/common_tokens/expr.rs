@@ -1,20 +1,40 @@
 use crate::*;
 
+#[derive(Debug)]
 pub enum Expression {}
 
 impl MappedParse for Expression {
     type Source = TokenTree;
 
     type Output = ();
-    type Error = ();
+    type Error = std::convert::Infallible;
 
     fn map(
-        src: SmOutput<Self::Source>,
+        src: SmOut<Self::Source>,
     ) -> Result<<Self as MappedParse>::Output, <Self as MappedParse>::Error> {
         todo!()
     }
 
-    fn map_err(src: SmError<Self::Source>) -> <Self as MappedParse>::Error {
+    fn map_err(src: SmErr<Self::Source>) -> <Self as MappedParse>::Error {
         todo!()
+    }
+}
+
+#[derive(Debug)]
+pub struct BlockExpression {}
+impl MappedParse for BlockExpression {
+    type Source = std::convert::Infallible;
+
+    type Output = Self;
+    type Error = SmErr<Self::Source>;
+
+    fn map(
+        src: SmOut<Self::Source>,
+    ) -> Result<<Self as MappedParse>::Output, <Self as MappedParse>::Error> {
+        todo!()
+    }
+
+    fn map_err(src: SmErr<Self::Source>) -> <Self as MappedParse>::Error {
+        src
     }
 }

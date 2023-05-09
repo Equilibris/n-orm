@@ -1,8 +1,9 @@
+use super::*;
 use crate::*;
 
-pub struct IdentifierUnder;
+pub struct IdentifierOrUnder;
 
-impl Parsable for IdentifierUnder {
+impl Parsable for IdentifierOrUnder {
     type StateMachine = Sm<
         AndNot<
             Ident,
@@ -16,4 +17,4 @@ impl Parsable for IdentifierUnder {
         >,
     >;
 }
-pub type Identifier = AndNot<IdentifierUnder, FIdent<"_">>;
+pub type Identifier = AndNot<IdentifierOrUnder, Underscore>;

@@ -6,20 +6,17 @@ pub struct ExternCrate {
     pub r#as: Option<Ident>,
 }
 
+pub type CrateRef = FlatEither<Identifier, KwLowerSelf>;
+pub type AsClause = Option<(KwAs, IdentifierOrUnder)>;
+
 impl MappedParse for ExternCrate {
-    type Source = (
-        KwExtern,
-        KwCrate,
-        FlatEither<Identifier, KwLowerSelf>,
-        Option<(KwAs, IdentifierUnder)>,
-        Semi,
-    );
+    type Source = (KwExtern, KwCrate, CrateRef, AsClause, Semi);
 
     type Output = Self;
-    type Error = SmError<Self::Source>;
+    type Error = SmErr<Self::Source>;
 
     fn map(
-        src: SmOutput<Self::Source>,
+        src: SmOut<Self::Source>,
     ) -> Result<<Self as MappedParse>::Output, <Self as MappedParse>::Error> {
         Ok(Self {
             id: src.2,
@@ -27,7 +24,21 @@ impl MappedParse for ExternCrate {
         })
     }
 
-    fn map_err(src: SmError<Self::Source>) -> <Self as MappedParse>::Error {
+    fn map_err(src: SmErr<Self::Source>) -> <Self as MappedParse>::Error {
         src
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::*;
+
+    use quote::quote;
+
+    #[test]
+    fn it_matches() {
+        parse_terminal::<ExternCrate>(quote! { extern crate self as _; }).unwrap();
+        parse_terminal::<ExternCrate>(quote! { extern crate hi; }).unwrap();
     }
 }

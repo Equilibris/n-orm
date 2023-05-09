@@ -1,3 +1,4 @@
+use super::*;
 use crate::*;
 
 pub type KwAs = FIdent<"as">;
@@ -252,19 +253,20 @@ impl MappedParse for Keyword {
     type Source = Either<Strict, Reserved>;
 
     type Output = Self;
-    type Error = SmError<Self::Source>;
+    type Error = SmErr<Self::Source>;
 
-    fn map(src: SmOutput<<Self as MappedParse>::Source>) -> Result<Self::Output, Self::Error> {
+    fn map(src: SmOut<<Self as MappedParse>::Source>) -> Result<Self::Output, Self::Error> {
         Ok(match src {
             Either::Left(a) => Self::Strict(a),
             Either::Right(a) => Self::Reserved(a),
         })
     }
 
-    fn map_err(src: SmError<<Self as MappedParse>::Source>) -> Self::Error {
+    fn map_err(src: SmErr<<Self as MappedParse>::Source>) -> Self::Error {
         src
     }
 }
 
 pub type StaticLifetime = (FJointPunct<'\''>, KwStatic);
-pub type UnderLifetime = (FJointPunct<'\''>, FIdent<"_">);
+pub type UnderLifetime = (FJointPunct<'\''>, Underscore);
+pub type DollarCrate = (FPunct<'$'>, FIdent<"crate">);

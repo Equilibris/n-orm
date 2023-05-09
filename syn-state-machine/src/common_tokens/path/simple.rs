@@ -1,6 +1,5 @@
 use super::super::*;
 use crate::*;
-
 #[derive(Debug)]
 pub enum Segment {
     Id(Ident),
@@ -10,14 +9,14 @@ pub enum Segment {
 impl MappedParse for Segment {
     type Source = Either<
         FlatEither<FlatEither<Identifier, KwSuper>, FlatEither<KwLowerSelf, KwCrate, Ident>>,
-        (FPunct<'$'>, FIdent<"crate">),
+        DollarCrate,
     >;
 
     type Output = Self;
-    type Error = SmError<Self::Source>;
+    type Error = SmErr<Self::Source>;
 
     fn map(
-        src: SmOutput<Self::Source>,
+        src: SmOut<Self::Source>,
     ) -> Result<<Self as MappedParse>::Output, <Self as MappedParse>::Error> {
         Ok(match src {
             Either::Left(v) => Self::Id(v),
@@ -25,7 +24,7 @@ impl MappedParse for Segment {
         })
     }
 
-    fn map_err(src: SmError<Self::Source>) -> <Self as MappedParse>::Error {
+    fn map_err(src: SmErr<Self::Source>) -> <Self as MappedParse>::Error {
         src
     }
 }
@@ -40,10 +39,10 @@ impl MappedParse for SimplePathOrNone {
     type Source = (Option<DoubleColon>, Interlace<Segment, DoubleColon>);
 
     type Output = Self;
-    type Error = SmError<Self::Source>;
+    type Error = SmErr<Self::Source>;
 
     fn map(
-        src: SmOutput<Self::Source>,
+        src: SmOut<Self::Source>,
     ) -> Result<<Self as MappedParse>::Output, <Self as MappedParse>::Error> {
         Ok(Self {
             leading_double_colon: src.0.is_some(),
@@ -51,7 +50,7 @@ impl MappedParse for SimplePathOrNone {
         })
     }
 
-    fn map_err(src: SmError<Self::Source>) -> <Self as MappedParse>::Error {
+    fn map_err(src: SmErr<Self::Source>) -> <Self as MappedParse>::Error {
         src
     }
 }
@@ -74,10 +73,10 @@ impl MappedParse for SimplePath {
     type Source = SimplePathOrNone;
 
     type Output = Self;
-    type Error = SimplePathError<SmError<Self::Source>>;
+    type Error = SimplePathError<SmErr<Self::Source>>;
 
     fn map(
-        src: SmOutput<Self::Source>,
+        src: SmOut<Self::Source>,
     ) -> Result<<Self as MappedParse>::Output, <Self as MappedParse>::Error> {
         if src.segments.len() == 0 {
             Err(SimplePathError::NoLength)
@@ -89,7 +88,7 @@ impl MappedParse for SimplePath {
         }
     }
 
-    fn map_err(src: SmError<Self::Source>) -> <Self as MappedParse>::Error {
+    fn map_err(src: SmErr<Self::Source>) -> <Self as MappedParse>::Error {
         SimplePathError::Inner(src)
     }
 }
