@@ -20,7 +20,7 @@ impl<Content: Parsable, Inner: Parsable> MappedParse for Module<Content, Inner> 
         Option<KwUnsafe>,
         KwMod,
         Identifier,
-        Either<Brace<(InnerAttrs<Inner>, Content)>, Semi>,
+        Sum2<Brace<(InnerAttrs<Inner>, Content)>, Semi>,
     );
 
     type Output = Self;
@@ -32,14 +32,14 @@ impl<Content: Parsable, Inner: Parsable> MappedParse for Module<Content, Inner> 
         let r#unsafe = src.0.is_some();
         let id = src.2;
         Ok(match src.3 {
-            Either::Left((inner_attrs, content)) => Self::Inline {
+            Sum2::Val0((inner_attrs, content)) => Self::Inline {
                 id,
 
                 r#unsafe,
                 inner_attrs,
                 content,
             },
-            Either::Right(_) => Self::Extern { id, r#unsafe },
+            Sum2::Val1(_) => Self::Extern { id, r#unsafe },
         })
     }
 

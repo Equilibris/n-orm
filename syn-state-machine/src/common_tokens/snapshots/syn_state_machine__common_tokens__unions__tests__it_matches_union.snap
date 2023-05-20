@@ -1,0 +1,70 @@
+---
+source: syn-state-machine/src/common_tokens/unions.rs
+expression: "crate::parse::<Union>(::quote::quote! {\n            union MyUnion { f1 : u32, f2 : f32, }\n        })"
+---
+Ok(
+    (
+        Union {
+            id: Ident(
+                MyUnion,
+            ),
+            genetic_params: None,
+            where_clause: None,
+            fields: InterlaceTrail(
+                [
+                    StructField {
+                        attr: [],
+                        vis: None,
+                        id: Ident(
+                            f1,
+                        ),
+                        ty: NoBounds(
+                            TypePath(
+                                TypePath {
+                                    leading: false,
+                                    segments: [
+                                        Simple {
+                                            id: Id(
+                                                Ident(
+                                                    u32,
+                                                ),
+                                            ),
+                                        },
+                                    ],
+                                },
+                            ),
+                        ),
+                    },
+                    StructField {
+                        attr: [],
+                        vis: None,
+                        id: Ident(
+                            f2,
+                        ),
+                        ty: NoBounds(
+                            TypePath(
+                                TypePath {
+                                    leading: false,
+                                    segments: [
+                                        Simple {
+                                            id: Id(
+                                                Ident(
+                                                    f32,
+                                                ),
+                                            ),
+                                        },
+                                    ],
+                                },
+                            ),
+                        ),
+                    },
+                ],
+                [
+                    FPunct,
+                    FPunct,
+                ],
+            ),
+        },
+        0,
+    ),
+)

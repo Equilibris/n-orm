@@ -1,0 +1,80 @@
+---
+source: syn-state-machine/src/common_tokens/function_pointer_types.rs
+expression: "crate::parse::<BareFunctionType>(::quote::quote! { fn(Hello, World) -> i64 })"
+---
+Ok(
+    (
+        BareFunctionType {
+            for: None,
+            qualifiers: FunctionTypeQualifiers {
+                unsafe: false,
+                extern: None,
+            },
+            params: Some(
+                MaybeNamedFunctionParameters(
+                    MaybeNamedFunctionParameters(
+                        [
+                            MaybeNamedParam {
+                                id: None,
+                                ty: NoBounds(
+                                    TypePath(
+                                        TypePath {
+                                            leading: false,
+                                            segments: [
+                                                Simple {
+                                                    id: Id(
+                                                        Ident(
+                                                            Hello,
+                                                        ),
+                                                    ),
+                                                },
+                                            ],
+                                        },
+                                    ),
+                                ),
+                            },
+                            MaybeNamedParam {
+                                id: None,
+                                ty: NoBounds(
+                                    TypePath(
+                                        TypePath {
+                                            leading: false,
+                                            segments: [
+                                                Simple {
+                                                    id: Id(
+                                                        Ident(
+                                                            World,
+                                                        ),
+                                                    ),
+                                                },
+                                            ],
+                                        },
+                                    ),
+                                ),
+                            },
+                        ],
+                    ),
+                ),
+            ),
+            ret: Some(
+                BareFunctionReturnType(
+                    TypePath(
+                        TypePath {
+                            leading: false,
+                            segments: [
+                                Simple {
+                                    id: Id(
+                                        Ident(
+                                            i64,
+                                        ),
+                                    ),
+                                },
+                            ],
+                        },
+                    ),
+                ),
+            ),
+        },
+        0,
+    ),
+)

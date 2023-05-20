@@ -34,7 +34,7 @@ pub struct MacroInvocationSemi {
 impl MappedParse for MacroInvocationSemi {
     type Source = (
         SimplePath,
-        Either<(Either<Paren<Tokens>, Bracket<Tokens>>, Semi), Brace<Tokens>>,
+        Sum2<(Sum2<Paren<Tokens>, Bracket<Tokens>>, Semi), Brace<Tokens>>,
     );
 
     type Output = Self;
@@ -46,10 +46,10 @@ impl MappedParse for MacroInvocationSemi {
         Ok(Self {
             path: src.0,
             content: match src.1 {
-                Either::Left(a) => match a.0 {
-                    Either::Left(a) | Either::Right(a) => a,
+                Sum2::Val0(a) => match a.0 {
+                    Sum2::Val0(a) | Sum2::Val1(a) => a,
                 },
-                Either::Right(a) => a,
+                Sum2::Val1(a) => a,
             },
         })
     }

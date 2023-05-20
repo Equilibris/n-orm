@@ -1,0 +1,25 @@
+---
+source: syn-state-machine/src/common_tokens/types.rs
+expression: "crate::parse::<Type>(::quote::quote! { u16 })"
+---
+Ok(
+    (
+        NoBounds(
+            TypePath(
+                TypePath {
+                    leading: false,
+                    segments: [
+                        Simple {
+                            id: Id(
+                                Ident(
+                                    u16,
+                                ),
+                            ),
+                        },
+                    ],
+                },
+            ),
+        ),
+        0,
+    ),
+)

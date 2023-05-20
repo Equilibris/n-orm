@@ -6,7 +6,7 @@ pub enum Expression {}
 impl MappedParse for Expression {
     type Source = TokenTree;
 
-    type Output = ();
+    type Output = Self;
     type Error = std::convert::Infallible;
 
     fn map(

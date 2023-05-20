@@ -1,0 +1,24 @@
+---
+source: syn-state-machine/src/common_tokens/function_pointer_types.rs
+expression: "crate::parse::<BareFunctionType>(::quote::quote! { fn() })"
+---
+Ok(
+    (
+        BareFunctionType {
+            for: None,
+            qualifiers: FunctionTypeQualifiers {
+                unsafe: false,
+                extern: None,
+            },
+            params: Some(
+                MaybeNamedFunctionParameters(
+                    MaybeNamedFunctionParameters(
+                        [],
+                    ),
+                ),
+            ),
+            ret: None,
+        },
+        0,
+    ),
+)

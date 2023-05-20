@@ -167,6 +167,11 @@ impl StateMachine for StrictMachine {
     fn terminate(self) -> SmResult<Self::Output, Self::Error> {
         Err(Default::default())
     }
+
+    #[cfg(feature = "execution-debug")]
+    fn inspect(&self, depth: usize) {
+        println!("{}Strict", "  ".repeat(depth));
+    }
 }
 
 pub type KwAbstract = FIdent<"abstract">;
@@ -242,6 +247,11 @@ impl StateMachine for ReservedMachine {
     fn terminate(self) -> SmResult<Self::Output, Self::Error> {
         Err(Default::default())
     }
+
+    #[cfg(feature = "execution-debug")]
+    fn inspect(&self, depth: usize) {
+        println!("{}Keyword", "  ".repeat(depth));
+    }
 }
 
 pub enum Keyword {
@@ -250,15 +260,15 @@ pub enum Keyword {
 }
 
 impl MappedParse for Keyword {
-    type Source = Either<Strict, Reserved>;
+    type Source = Sum2<Strict, Reserved>;
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
 
     fn map(src: SmOut<<Self as MappedParse>::Source>) -> Result<Self::Output, Self::Error> {
         Ok(match src {
-            Either::Left(a) => Self::Strict(a),
-            Either::Right(a) => Self::Reserved(a),
+            Sum2::Val0(a) => Self::Strict(a),
+            Sum2::Val1(a) => Self::Reserved(a),
         })
     }
 
@@ -267,6 +277,7 @@ impl MappedParse for Keyword {
     }
 }
 
+pub type KwUnion = FIdent<"union">;
 pub type StaticLifetime = (FJointPunct<'\''>, KwStatic);
 pub type UnderLifetime = (FJointPunct<'\''>, Underscore);
 pub type DollarCrate = (FPunct<'$'>, FIdent<"crate">);

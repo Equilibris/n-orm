@@ -1,0 +1,140 @@
+---
+source: syn-state-machine/src/common_tokens/structs.rs
+expression: "crate::parse::<Struct>(::quote::quote! {\n            struct Point < T > where T : Hi { pub v0 : T, pub v1 : T }\n        })"
+---
+Ok(
+    (
+        Block(
+            BlockStruct {
+                id: Ident(
+                    Point,
+                ),
+                params: Some(
+                    GenericParams(
+                        [
+                            TypeParam(
+                                [],
+                                TypeParam {
+                                    id: Ident(
+                                        T,
+                                    ),
+                                    bounds: None,
+                                    ty: None,
+                                },
+                            ),
+                        ],
+                    ),
+                ),
+                fields: InterlaceTrail(
+                    [
+                        StructField {
+                            attr: [],
+                            vis: Some(
+                                Pub,
+                            ),
+                            id: Ident(
+                                v0,
+                            ),
+                            ty: NoBounds(
+                                TypePath(
+                                    TypePath {
+                                        leading: false,
+                                        segments: [
+                                            Simple {
+                                                id: Id(
+                                                    Ident(
+                                                        T,
+                                                    ),
+                                                ),
+                                            },
+                                        ],
+                                    },
+                                ),
+                            ),
+                        },
+                        StructField {
+                            attr: [],
+                            vis: Some(
+                                Pub,
+                            ),
+                            id: Ident(
+                                v1,
+                            ),
+                            ty: NoBounds(
+                                TypePath(
+                                    TypePath {
+                                        leading: false,
+                                        segments: [
+                                            Simple {
+                                                id: Id(
+                                                    Ident(
+                                                        T,
+                                                    ),
+                                                ),
+                                            },
+                                        ],
+                                    },
+                                ),
+                            ),
+                        },
+                    ],
+                    [
+                        FPunct,
+                    ],
+                ),
+                where_clause: Some(
+                    WhereClause(
+                        [
+                            TypeBoundWhereClauseItem(
+                                TypeBoundWhereClauseItem {
+                                    for: None,
+                                    ty: NoBounds(
+                                        TypePath(
+                                            TypePath {
+                                                leading: false,
+                                                segments: [
+                                                    Simple {
+                                                        id: Id(
+                                                            Ident(
+                                                                T,
+                                                            ),
+                                                        ),
+                                                    },
+                                                ],
+                                            },
+                                        ),
+                                    ),
+                                    bounds: Some(
+                                        TypeParamBounds(
+                                            [
+                                                TraitBound(
+                                                    TraitBound {
+                                                        q: false,
+                                                        for: None,
+                                                        ty: TypePath {
+                                                            leading: false,
+                                                            segments: [
+                                                                Simple {
+                                                                    id: Id(
+                                                                        Ident(
+                                                                            Hi,
+                                                                        ),
+                                                                    ),
+                                                                },
+                                                            ],
+                                                        },
+                                                    },
+                                                ),
+                                            ],
+                                        ),
+                                    ),
+                                },
+                            ),
+                        ],
+                    ),
+                ),
+            },
+        ),
+        0,
+    ),
+)

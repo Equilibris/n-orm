@@ -1,0 +1,52 @@
+---
+source: syn-state-machine/src/common_tokens/functions.rs
+expression: "crate::parse::<SelfParam>(::quote::quote! { mut self : Box < Self > })"
+---
+Ok(
+    (
+        Typed(
+            TypedSelf {
+                is_mut: true,
+                ty: NoBounds(
+                    TypePath(
+                        TypePath {
+                            leading: false,
+                            segments: [
+                                Generic {
+                                    id: Id(
+                                        Ident(
+                                            Box,
+                                        ),
+                                    ),
+                                    generic_args: GenericArgs(
+                                        [
+                                            Type(
+                                                NoBounds(
+                                                    TypePath(
+                                                        TypePath {
+                                                            leading: false,
+                                                            segments: [
+                                                                Simple {
+                                                                    id: Id(
+                                                                        Ident(
+                                                                            Self,
+                                                                        ),
+                                                                    ),
+                                                                },
+                                                            ],
+                                                        },
+                                                    ),
+                                                ),
+                                            ),
+                                        ],
+                                    ),
+                                },
+                            ],
+                        },
+                    ),
+                ),
+            },
+        ),
+        0,
+    ),
+)

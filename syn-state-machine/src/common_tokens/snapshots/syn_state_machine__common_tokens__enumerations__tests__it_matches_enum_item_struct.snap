@@ -1,0 +1,45 @@
+---
+source: syn-state-machine/src/common_tokens/enumerations.rs
+expression: "crate::parse::<EnumItem>(::quote::quote! { Block { hello : World } })"
+---
+Ok(
+    (
+        Block {
+            id: Ident(
+                Block,
+            ),
+            attrs: [],
+            block: InterlaceTrail(
+                [
+                    StructField {
+                        attr: [],
+                        vis: None,
+                        id: Ident(
+                            hello,
+                        ),
+                        ty: NoBounds(
+                            TypePath(
+                                TypePath {
+                                    leading: false,
+                                    segments: [
+                                        Simple {
+                                            id: Id(
+                                                Ident(
+                                                    World,
+                                                ),
+                                            ),
+                                        },
+                                    ],
+                                },
+                            ),
+                        ),
+                    },
+                ],
+                [],
+            ),
+            vis: None,
+            desc: None,
+        },
+        0,
+    ),
+)

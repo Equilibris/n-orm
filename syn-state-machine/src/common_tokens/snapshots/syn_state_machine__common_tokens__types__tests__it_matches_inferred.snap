@@ -1,0 +1,14 @@
+---
+source: syn-state-machine/src/common_tokens/types.rs
+expression: "crate::parse::<InferredType>(::quote::quote! { _ })"
+---
+Ok(
+    (
+        FIdent(
+            Ident(
+                _,
+            ),
+        ),
+        0,
+    ),
+)

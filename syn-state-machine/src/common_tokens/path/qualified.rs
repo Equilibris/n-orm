@@ -66,3 +66,16 @@ impl MappedParse for QualifiedPathInExpression {
         src
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use quote::quote;
+
+    use super::*;
+    use crate::parse_terminal;
+
+    #[test]
+    fn it_matches_simple_paths() {
+        parse_terminal::<QualifiedPathInType>(quote!(<hello as Default>::Default)).unwrap();
+    }
+}

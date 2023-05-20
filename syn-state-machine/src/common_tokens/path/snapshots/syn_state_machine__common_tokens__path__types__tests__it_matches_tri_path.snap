@@ -1,0 +1,35 @@
+---
+source: syn-state-machine/src/common_tokens/path/types.rs
+expression: "crate::parse::<TypePath>(::quote::quote! { hello :: world :: hi })"
+---
+Ok(
+    (
+        TypePath {
+            leading: false,
+            segments: [
+                Simple {
+                    id: Id(
+                        Ident(
+                            hello,
+                        ),
+                    ),
+                },
+                Simple {
+                    id: Id(
+                        Ident(
+                            world,
+                        ),
+                    ),
+                },
+                Simple {
+                    id: Id(
+                        Ident(
+                            hi,
+                        ),
+                    ),
+                },
+            ],
+        },
+        0,
+    ),
+)

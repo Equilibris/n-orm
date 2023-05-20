@@ -76,3 +76,25 @@ impl MappedParse for TraitObjectTypeOneBound {
         src
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use quote::quote;
+
+    use super::*;
+    use crate::*;
+
+    insta_match_test!(it_matches_dyn_hello, TraitObjectTypeOneBound: dyn Hello);
+    insta_match_test!(it_matches_impl_hello, ImplTraitTypeOneBound: impl Hello);
+
+    insta_match_test!(it_matches_dyn_hello_type, TraitObjectType: dyn Hello);
+    insta_match_test!(it_matches_impl_hello_type, ImplTraitType: impl Hello);
+    insta_match_test!(
+        it_matches_compound_dyn_type,
+        TraitObjectType: dyn 'a + Hello
+    );
+    insta_match_test!(
+        it_matches_compound_impl_type,
+        ImplTraitType: impl 'a +Hello
+    );
+}

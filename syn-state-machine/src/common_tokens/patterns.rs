@@ -1,7 +1,9 @@
+use std::fmt::Debug;
+
 use super::*;
 use crate::*;
 
-use Either::*;
+use Sum2::*;
 
 pub mod range_patterns;
 pub use range_patterns::*;
@@ -31,7 +33,7 @@ pub enum PatternNoTopAlt {
     RangePattern(RangePattern),
 }
 impl MappedParse for PatternNoTopAlt {
-    type Source = Either<PatternWithoutRange, RangePattern>;
+    type Source = Sum2<PatternWithoutRange, RangePattern>;
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -40,8 +42,8 @@ impl MappedParse for PatternNoTopAlt {
         src: SmOut<Self::Source>,
     ) -> Result<<Self as MappedParse>::Output, <Self as MappedParse>::Error> {
         Ok(match src {
-            Left(a) => Self::PatternWithoutRange(a),
-            Right(a) => Self::RangePattern(a),
+            Val0(a) => Self::PatternWithoutRange(a),
+            Val1(a) => Self::RangePattern(a),
         })
     }
 
@@ -84,18 +86,19 @@ pub enum PatternWithoutRange {
 }
 impl MappedParse for PatternWithoutRange {
     type Source = PBox<
-        Either<
-            Either<
-                Either<
-                    Either<LiteralPattern, IdentifierPattern>,
-                    Either<WildcardPattern, RestPattern>,
-                >,
-                Either<
-                    Either<ReferencePattern, StructPattern>,
-                    Either<TupleStructPattern, TuplePattern>,
-                >,
-            >,
-            Either<Either<Paren<Pattern>, SlicePattern>, Either<PathExpression, MacroInvocation>>,
+        Sum12<
+            LiteralPattern,
+            IdentifierPattern,
+            WildcardPattern,
+            RestPattern,
+            ReferencePattern,
+            StructPattern,
+            TupleStructPattern,
+            TuplePattern,
+            Paren<Pattern>,
+            SlicePattern,
+            PathExpression,
+            MacroInvocation,
         >,
     >;
 
@@ -106,41 +109,38 @@ impl MappedParse for PatternWithoutRange {
         src: SmOut<Self::Source>,
     ) -> Result<<Self as MappedParse>::Output, <Self as MappedParse>::Error> {
         Ok(match *src {
-            Left(Left(Left(Left(a)))) => Self::LiteralPattern(a),
-            Left(Left(Left(Right(a)))) => Self::IdentifierPattern(Box::new(a)),
-            Left(Left(Right(Left(a)))) => Self::WildcardPattern(a),
-            Left(Left(Right(Right(a)))) => Self::RestPattern(a),
-            Left(Right(Left(Left(a)))) => Self::ReferencePattern(Box::new(a)),
-            Left(Right(Left(Right(a)))) => Self::StructPattern(a),
-            Left(Right(Right(Left(a)))) => Self::TupleStructPattern(a),
-            Left(Right(Right(Right(a)))) => Self::TuplePattern(a),
-
-            Right(Left(Left(a))) => Self::GroupedPattern(Box::new(a)),
-            Right(Left(Right(a))) => Self::SlicePattern(a),
-            Right(Right(Left(a))) => Self::PathPattern(a),
-            Right(Right(Right(a))) => Self::MacroInvocation(a),
+            Sum12::Val0(a) => Self::LiteralPattern(a),
+            Sum12::Val1(a) => Self::IdentifierPattern(Box::new(a)),
+            Sum12::Val2(a) => Self::WildcardPattern(a),
+            Sum12::Val3(a) => Self::RestPattern(a),
+            Sum12::Val4(a) => Self::ReferencePattern(Box::new(a)),
+            Sum12::Val5(a) => Self::StructPattern(a),
+            Sum12::Val6(a) => Self::TupleStructPattern(a),
+            Sum12::Val7(a) => Self::TuplePattern(a),
+            Sum12::Val8(a) => Self::GroupedPattern(Box::new(a)),
+            Sum12::Val9(a) => Self::SlicePattern(a),
+            Sum12::Val10(a) => Self::PathPattern(a),
+            Sum12::Val11(a) => Self::MacroInvocation(a),
         })
     }
 
     fn map_err(src: SmErr<Self::Source>) -> <Self as MappedParse>::Error {
         let src = *src;
 
-        let EitherParsingError(
-            EitherParsingError(
-                EitherParsingError(
-                    EitherParsingError(literal_pattern, identifier_pattern),
-                    EitherParsingError(wildcard_pattern, rest_pattern),
-                ),
-                EitherParsingError(
-                    EitherParsingError(reference_pattern, struct_pattern),
-                    EitherParsingError(tuple_struct_pattern, tuple_pattern),
-                ),
-            ),
-            EitherParsingError(
-                EitherParsingError(grouped_pattern, slice_pattern),
-                EitherParsingError(path_pattern, macro_invocation),
-            ),
-        ) = src;
+        let Sum12Err {
+            v0: literal_pattern,
+            v1: identifier_pattern,
+            v2: wildcard_pattern,
+            v3: rest_pattern,
+            v4: reference_pattern,
+            v5: struct_pattern,
+            v6: tuple_struct_pattern,
+            v7: tuple_pattern,
+            v8: grouped_pattern,
+            v9: slice_pattern,
+            v10: path_pattern,
+            v11: macro_invocation,
+        } = src;
 
         PatternError {
             literal_pattern,
@@ -266,8 +266,8 @@ pub enum TuplePatternItems {
     Rest,
 }
 impl MappedParse for TuplePatternItems {
-    type Source = Either<
-        Either<RestPattern, (Pattern, Comma)>,
+    type Source = Sum2<
+        Sum2<RestPattern, (Pattern, Comma)>,
         (MinLength<Interlace<Pattern, Comma>, 2>, Option<Comma>),
     >;
 
@@ -278,9 +278,9 @@ impl MappedParse for TuplePatternItems {
         src: SmOut<Self::Source>,
     ) -> Result<<Self as MappedParse>::Output, <Self as MappedParse>::Error> {
         Ok(match src {
-            Left(Left(_)) => Self::Rest,
-            Left(Right(a)) => Self::Fields(vec![a.0]),
-            Right(a) => Self::Fields(a.0 .0),
+            Val0(Val0(_)) => Self::Rest,
+            Val0(Val1(a)) => Self::Fields(vec![a.0]),
+            Val1(a) => Self::Fields(a.0 .0),
         })
     }
 
@@ -342,10 +342,10 @@ pub enum StructPatternElements {
     StructPatternFields(StructPatternFields, Option<StructPatternEtCetera>),
 }
 impl MappedParse for StructPatternElements {
-    type Source = Either<
+    type Source = Sum2<
         (
             StructPatternFields,
-            Option<Either<Comma, (Comma, StructPatternEtCetera)>>,
+            Option<Sum2<Comma, (Comma, StructPatternEtCetera)>>,
         ),
         StructPatternEtCetera,
     >;
@@ -357,8 +357,12 @@ impl MappedParse for StructPatternElements {
         src: SmOut<Self::Source>,
     ) -> Result<<Self as MappedParse>::Output, <Self as MappedParse>::Error> {
         Ok(match src {
-            Left(a) => Self::StructPatternFields(a.0, a.1.and_then(|v| v.right()).map(|v| v.1)),
-            Right(a) => Self::StructPatternEtCetera(a),
+            Val0(a) => Self::StructPatternFields(
+                a.0,
+                a.1.and_then(|v| if let Sum2::Val1(a) = v { Some(a) } else { None })
+                    .map(|v| v.1),
+            ),
+            Val1(a) => Self::StructPatternEtCetera(a),
         })
     }
 
@@ -367,7 +371,6 @@ impl MappedParse for StructPatternElements {
     }
 }
 
-#[derive(Debug)]
 pub enum StructPatternField<T: Parsable = Tokens> {
     Tuple {
         attrs: Attrs<T>,
@@ -386,11 +389,46 @@ pub enum StructPatternField<T: Parsable = Tokens> {
         id: Ident,
     },
 }
+
+impl<T: Parsable> Debug for StructPatternField<T>
+where
+    SmOut<T>: Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Tuple { attrs, id, pattern } => f
+                .debug_struct("Tuple")
+                .field("attrs", attrs)
+                .field("id", id)
+                .field("pattern", pattern)
+                .finish(),
+            Self::Id { attrs, id, pattern } => f
+                .debug_struct("Id")
+                .field("attrs", attrs)
+                .field("id", id)
+                .field("pattern", pattern)
+                .finish(),
+            Self::IdShorthand {
+                attrs,
+                r#ref,
+                r#mut,
+                id,
+            } => f
+                .debug_struct("IdShorthand")
+                .field("attrs", attrs)
+                .field("r#ref", r#ref)
+                .field("r#mut", r#mut)
+                .field("id", id)
+                .finish(),
+        }
+    }
+}
+
 impl<T: Parsable> MappedParse for StructPatternField<T> {
     type Source = WithAttrs<
         T,
-        Either<
-            Either<(TupleIndex, Colon, Pattern), (Identifier, Colon, Pattern)>,
+        Sum2<
+            Sum2<(TupleIndex, Colon, Pattern), (Identifier, Colon, Pattern)>,
             (Option<KwRef>, Option<KwMut>, Identifier),
         >,
     >;
@@ -402,17 +440,17 @@ impl<T: Parsable> MappedParse for StructPatternField<T> {
         src: SmOut<Self::Source>,
     ) -> Result<<Self as MappedParse>::Output, <Self as MappedParse>::Error> {
         Ok(match src.1 {
-            Left(Left(a)) => Self::Tuple {
+            Val0(Val0(a)) => Self::Tuple {
                 attrs: src.0,
                 id: a.0,
                 pattern: a.2,
             },
-            Left(Right(a)) => Self::Id {
+            Val0(Val1(a)) => Self::Id {
                 attrs: src.0,
                 id: a.0,
                 pattern: a.2,
             },
-            Right(a) => Self::IdShorthand {
+            Val1(a) => Self::IdShorthand {
                 attrs: src.0,
                 r#ref: a.0.is_some(),
                 r#mut: a.1.is_some(),
@@ -469,7 +507,7 @@ pub struct ReferencePattern {
     pub pattern: PatternWithoutRange,
 }
 impl MappedParse for ReferencePattern {
-    type Source = (Either<Amp, (Amp, Amp)>, Option<KwMut>, PatternWithoutRange);
+    type Source = (Sum2<Amp, (Amp, Amp)>, Option<KwMut>, PatternWithoutRange);
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -478,7 +516,7 @@ impl MappedParse for ReferencePattern {
         src: SmOut<Self::Source>,
     ) -> Result<<Self as MappedParse>::Output, <Self as MappedParse>::Error> {
         Ok(Self {
-            ref_count: usize::from(src.0.is_left()) + 1,
+            ref_count: usize::from(matches!(src.0, Sum2::Val0(_))) + 1,
             r#mut: src.1.is_some(),
             pattern: src.2,
         })
@@ -505,11 +543,15 @@ pub enum LiteralPattern {
     FloatLit(FloatLit),
 }
 impl MappedParse for LiteralPattern {
-    type Source = Either<
-        Either<
-            Either<Either<bool, CharLit>, Either<ByteLit, StringLit>>,
-            Either<Either<ByteStringLit, NegativeIntegerLit>, Either<NegativeFloatLit, IntegerLit>>,
-        >,
+    type Source = Sum9<
+        bool,
+        CharLit,
+        ByteLit,
+        StringLit,
+        ByteStringLit,
+        NegativeIntegerLit,
+        NegativeFloatLit,
+        IntegerLit,
         FloatLit,
     >;
 
@@ -520,15 +562,15 @@ impl MappedParse for LiteralPattern {
         src: SmOut<Self::Source>,
     ) -> Result<<Self as MappedParse>::Output, <Self as MappedParse>::Error> {
         Ok(match src {
-            Left(Left(Left(Left(a)))) => Self::Bool(a),
-            Left(Left(Left(Right(a)))) => Self::CharLit(a),
-            Left(Left(Right(Left(a)))) => Self::ByteLit(a),
-            Left(Left(Right(Right(a)))) => Self::StringLit(a),
-            Left(Right(Left(Left(a)))) => Self::ByteStringLit(a),
-            Left(Right(Left(Right(a)))) => Self::NegIntLit(a),
-            Left(Right(Right(Left(a)))) => Self::NegFloatLit(a),
-            Left(Right(Right(Right(a)))) => Self::IntLit(a),
-            Right(a) => Self::FloatLit(a),
+            Sum9::Val0(a) => Self::Bool(a),
+            Sum9::Val1(a) => Self::CharLit(a),
+            Sum9::Val2(a) => Self::ByteLit(a),
+            Sum9::Val3(a) => Self::StringLit(a),
+            Sum9::Val4(a) => Self::ByteStringLit(a),
+            Sum9::Val5(a) => Self::NegIntLit(a),
+            Sum9::Val6(a) => Self::NegFloatLit(a),
+            Sum9::Val7(a) => Self::IntLit(a),
+            Sum9::Val8(a) => Self::FloatLit(a),
         })
     }
 

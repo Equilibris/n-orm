@@ -1,0 +1,30 @@
+---
+source: syn-state-machine/src/common_tokens/path/types.rs
+expression: "parse_terminal::<TypePath>(quote!(hello :: world :: hi)).unwrap()"
+---
+TypePath {
+    leading: false,
+    segments: [
+        Simple {
+            id: Id(
+                Ident(
+                    hello,
+                ),
+            ),
+        },
+        Simple {
+            id: Id(
+                Ident(
+                    world,
+                ),
+            ),
+        },
+        Simple {
+            id: Id(
+                Ident(
+                    hi,
+                ),
+            ),
+        },
+    ],
+}

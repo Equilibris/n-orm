@@ -1,0 +1,139 @@
+---
+source: syn-state-machine/src/common_tokens/type_alias.rs
+expression: "crate::parse::<TypeAlias>(::quote::quote! {\n            type Point < T > where T : std :: ops :: Add = (T, T) ;\n        })"
+---
+Ok(
+    (
+        TypeAlias {
+            id: Ident(
+                Point,
+            ),
+            params: Some(
+                GenericParams(
+                    [
+                        TypeParam(
+                            [],
+                            TypeParam {
+                                id: Ident(
+                                    T,
+                                ),
+                                bounds: None,
+                                ty: None,
+                            },
+                        ),
+                    ],
+                ),
+            ),
+            bounds: None,
+            pre_where_clause: Some(
+                WhereClause(
+                    [
+                        TypeBoundWhereClauseItem(
+                            TypeBoundWhereClauseItem {
+                                for: None,
+                                ty: NoBounds(
+                                    TypePath(
+                                        TypePath {
+                                            leading: false,
+                                            segments: [
+                                                Simple {
+                                                    id: Id(
+                                                        Ident(
+                                                            T,
+                                                        ),
+                                                    ),
+                                                },
+                                            ],
+                                        },
+                                    ),
+                                ),
+                                bounds: Some(
+                                    TypeParamBounds(
+                                        [
+                                            TraitBound(
+                                                TraitBound {
+                                                    q: false,
+                                                    for: None,
+                                                    ty: TypePath {
+                                                        leading: false,
+                                                        segments: [
+                                                            Simple {
+                                                                id: Id(
+                                                                    Ident(
+                                                                        std,
+                                                                    ),
+                                                                ),
+                                                            },
+                                                            Simple {
+                                                                id: Id(
+                                                                    Ident(
+                                                                        ops,
+                                                                    ),
+                                                                ),
+                                                            },
+                                                            Simple {
+                                                                id: Id(
+                                                                    Ident(
+                                                                        Add,
+                                                                    ),
+                                                                ),
+                                                            },
+                                                        ],
+                                                    },
+                                                },
+                                            ),
+                                        ],
+                                    ),
+                                ),
+                            },
+                        ),
+                    ],
+                ),
+            ),
+            ty: Some(
+                NoBounds(
+                    Tuple(
+                        TupleType(
+                            [
+                                NoBounds(
+                                    TypePath(
+                                        TypePath {
+                                            leading: false,
+                                            segments: [
+                                                Simple {
+                                                    id: Id(
+                                                        Ident(
+                                                            T,
+                                                        ),
+                                                    ),
+                                                },
+                                            ],
+                                        },
+                                    ),
+                                ),
+                                NoBounds(
+                                    TypePath(
+                                        TypePath {
+                                            leading: false,
+                                            segments: [
+                                                Simple {
+                                                    id: Id(
+                                                        Ident(
+                                                            T,
+                                                        ),
+                                                    ),
+                                                },
+                                            ],
+                                        },
+                                    ),
+                                ),
+                            ],
+                        ),
+                    ),
+                ),
+            ),
+            post_where_clause: None,
+        },
+        0,
+    ),
+)

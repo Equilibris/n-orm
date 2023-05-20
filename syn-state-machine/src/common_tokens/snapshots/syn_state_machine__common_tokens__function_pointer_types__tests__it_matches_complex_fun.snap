@@ -1,0 +1,106 @@
+---
+source: syn-state-machine/src/common_tokens/function_pointer_types.rs
+expression: "crate::parse::<BareFunctionType>(::quote::quote! {\n            for < 'a > unsafe extern \"C\" fn(Hello, World, ...) -> i64\n        })"
+---
+Ok(
+    (
+        BareFunctionType {
+            for: Some(
+                ForLifetimes(
+                    GenericParams(
+                        [
+                            LifetimeParam(
+                                [],
+                                LifetimeParam {
+                                    id: Ident(
+                                        a,
+                                    ),
+                                    bounds: None,
+                                },
+                            ),
+                        ],
+                    ),
+                ),
+            ),
+            qualifiers: FunctionTypeQualifiers {
+                unsafe: true,
+                extern: Some(
+                    Some(
+                        StringLit {
+                            raw: "\"C\"",
+                            value: None,
+                            num_hashes: None,
+                            start_suffix: 3,
+                        },
+                    ),
+                ),
+            },
+            params: Some(
+                MaybeNamedFunctionParametersVariadic(
+                    MaybeNamedFunctionParametersVariadic(
+                        [
+                            MaybeNamedParam {
+                                id: None,
+                                ty: NoBounds(
+                                    TypePath(
+                                        TypePath {
+                                            leading: false,
+                                            segments: [
+                                                Simple {
+                                                    id: Id(
+                                                        Ident(
+                                                            Hello,
+                                                        ),
+                                                    ),
+                                                },
+                                            ],
+                                        },
+                                    ),
+                                ),
+                            },
+                            MaybeNamedParam {
+                                id: None,
+                                ty: NoBounds(
+                                    TypePath(
+                                        TypePath {
+                                            leading: false,
+                                            segments: [
+                                                Simple {
+                                                    id: Id(
+                                                        Ident(
+                                                            World,
+                                                        ),
+                                                    ),
+                                                },
+                                            ],
+                                        },
+                                    ),
+                                ),
+                            },
+                        ],
+                        [],
+                    ),
+                ),
+            ),
+            ret: Some(
+                BareFunctionReturnType(
+                    TypePath(
+                        TypePath {
+                            leading: false,
+                            segments: [
+                                Simple {
+                                    id: Id(
+                                        Ident(
+                                            i64,
+                                        ),
+                                    ),
+                                },
+                            ],
+                        },
+                    ),
+                ),
+            ),
+        },
+        0,
+    ),
+)

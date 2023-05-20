@@ -1,7 +1,7 @@
 use super::*;
 use crate::*;
 
-use Either::*;
+use Sum2::*;
 
 #[derive(Debug)]
 pub enum Type {
@@ -10,7 +10,7 @@ pub enum Type {
     TraitObject(TraitObjectType),
 }
 impl MappedParse for Type {
-    type Source = Either<TypeNoBounds, Either<ImplTraitType, TraitObjectType>>;
+    type Source = Sum2<TypeNoBounds, Sum2<ImplTraitType, TraitObjectType>>;
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -19,9 +19,9 @@ impl MappedParse for Type {
         src: SmOut<Self::Source>,
     ) -> Result<<Self as MappedParse>::Output, <Self as MappedParse>::Error> {
         Ok(match src {
-            Left(a) => Self::NoBounds(a),
-            Right(Left(a)) => Self::ImplTrait(a),
-            Right(Right(a)) => Self::TraitObject(a),
+            Val0(a) => Self::NoBounds(a),
+            Val1(Val0(a)) => Self::ImplTrait(a),
+            Val1(Val1(a)) => Self::TraitObject(a),
         })
     }
 
@@ -68,18 +68,21 @@ pub enum TypeNoBounds {
 }
 impl MappedParse for TypeNoBounds {
     type Source = PBox<
-        Either<
-            Either<
-                Either<
-                    Either<ParenthesizedType, ImplTraitTypeOneBound>,
-                    Either<TraitObjectTypeOneBound, TypePath>,
-                >,
-                Either<Either<TupleType, NeverType>, Either<RawPointerType, ReferenceType>>,
-            >,
-            Either<
-                Either<Either<ArrayType, SliceType>, Either<InferredType, QualifiedPathInType>>,
-                Either<BareFunctionType, MacroInvocation>,
-            >,
+        Sum14<
+            ParenthesizedType,
+            ImplTraitTypeOneBound,
+            TraitObjectTypeOneBound,
+            TypePath,
+            TupleType,
+            NeverType,
+            RawPointerType,
+            ReferenceType,
+            ArrayType,
+            SliceType,
+            InferredType,
+            QualifiedPathInType,
+            BareFunctionType,
+            MacroInvocation,
         >,
     >;
 
@@ -90,44 +93,40 @@ impl MappedParse for TypeNoBounds {
         src: SmOut<Self::Source>,
     ) -> Result<<Self as MappedParse>::Output, <Self as MappedParse>::Error> {
         Ok(match *src {
-            Left(Left(Left(Left(a)))) => Self::Parenthesized(Box::new(a)),
-            Left(Left(Left(Right(a)))) => Self::ImplTraitOneBound(a),
-            Left(Left(Right(Left(a)))) => Self::TraitObjectOneBound(a),
-            Left(Left(Right(Right(a)))) => Self::TypePath(a),
-            Left(Right(Left(Left(a)))) => Self::Tuple(a),
-            Left(Right(Left(Right(a)))) => Self::Never(a),
-            Left(Right(Right(Left(a)))) => Self::RawPointer(Box::new(a)),
-            Left(Right(Right(Right(a)))) => Self::Reference(Box::new(a)),
-            Right(Left(Left(Left(a)))) => Self::Array(Box::new(a)),
-            Right(Left(Left(Right(a)))) => Self::Slice(Box::new(a)),
-            Right(Left(Right(Left(a)))) => Self::Inferred(a),
-            Right(Left(Right(Right(a)))) => Self::QualifiedPath(Box::new(a)),
-            Right(Right(Left(a))) => Self::BareFunction(Box::new(a)),
-            Right(Right(Right(a))) => Self::MacroInvocation(a),
+            Sum14::Val0(a) => Self::Parenthesized(Box::new(a)),
+            Sum14::Val1(a) => Self::ImplTraitOneBound(a),
+            Sum14::Val2(a) => Self::TraitObjectOneBound(a),
+            Sum14::Val3(a) => Self::TypePath(a),
+            Sum14::Val4(a) => Self::Tuple(a),
+            Sum14::Val5(a) => Self::Never(a),
+            Sum14::Val6(a) => Self::RawPointer(Box::new(a)),
+            Sum14::Val7(a) => Self::Reference(Box::new(a)),
+            Sum14::Val8(a) => Self::Array(Box::new(a)),
+            Sum14::Val9(a) => Self::Slice(Box::new(a)),
+            Sum14::Val10(a) => Self::Inferred(a),
+            Sum14::Val11(a) => Self::QualifiedPath(Box::new(a)),
+            Sum14::Val12(a) => Self::BareFunction(Box::new(a)),
+            Sum14::Val13(a) => Self::MacroInvocation(a),
         })
     }
 
     fn map_err(src: SmErr<Self::Source>) -> <Self as MappedParse>::Error {
-        let src = *src;
-        let EitherParsingError(
-            EitherParsingError(
-                EitherParsingError(
-                    EitherParsingError(parenthesized, impl_trait_one_bound),
-                    EitherParsingError(trait_object_one_bound, type_path),
-                ),
-                EitherParsingError(
-                    EitherParsingError(tuple, never),
-                    EitherParsingError(raw_pointer, reference),
-                ),
-            ),
-            EitherParsingError(
-                EitherParsingError(
-                    EitherParsingError(array, slice),
-                    EitherParsingError(inferred, qualified_path),
-                ),
-                EitherParsingError(bare_function, macro_invocation),
-            ),
-        ) = src;
+        let Sum14Err {
+            v0: parenthesized,
+            v1: impl_trait_one_bound,
+            v2: trait_object_one_bound,
+            v3: type_path,
+            v4: tuple,
+            v5: never,
+            v6: raw_pointer,
+            v7: reference,
+            v8: array,
+            v9: slice,
+            v10: inferred,
+            v11: qualified_path,
+            v12: bare_function,
+            v13: macro_invocation,
+        } = *src;
 
         TypeNoBoundsError {
             parenthesized: Box::new(parenthesized),
@@ -172,7 +171,7 @@ pub type InferredType = Underscore;
 #[derive(Debug)]
 pub struct SliceType(pub Type);
 impl MappedParse for SliceType {
-    type Source = Brace<Type>;
+    type Source = Bracket<Type>;
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -265,7 +264,7 @@ pub type NeverType = Exclamation;
 #[derive(Debug)]
 pub struct TupleType(pub Vec<Type>);
 impl MappedParse for TupleType {
-    type Source = Paren<Interlace<Type, Comma>>;
+    type Source = Paren<Sum2<MinLength<InterlaceTrail<Type, Comma>, 2>, Option<(Type, Comma)>>>;
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -273,7 +272,11 @@ impl MappedParse for TupleType {
     fn map(
         src: SmOut<Self::Source>,
     ) -> Result<<Self as MappedParse>::Output, <Self as MappedParse>::Error> {
-        Ok(Self(src.0))
+        Ok(Self(match src {
+            Val0(a) => a.0,
+            Val1(Some(a)) => vec![a.0],
+            Val1(None) => Vec::new(),
+        }))
     }
 
     fn map_err(src: SmErr<Self::Source>) -> <Self as MappedParse>::Error {
@@ -288,14 +291,48 @@ mod tests {
     use super::*;
     use crate::*;
 
+    // The primary issue for type matching is stack-overflows. This is me trying to avoid this.
     #[test]
-    fn it_matches_paren_type() {
-        println!("{:#?}", parse_terminal::<Type>(quote!(impl Hi)).unwrap());
-        println!("{:#?}", parse_terminal::<Type>(quote!(dyn Hi)).unwrap());
-        println!("{:#?}", parse_terminal::<Type>(quote!((u16))).unwrap());
-        println!(
-            "{:#?}",
-            parse_terminal::<Type>(quote!(hello::World)).unwrap()
-        );
+    fn it_does_not_overrun_stack_for_reasonable_types() {
+        for i in 1..=5 {
+            let thread = std::thread::spawn(move || {
+                let mut src = quote!(i8);
+                for _ in 0..i {
+                    src = quote!(Box < #src >);
+                }
+
+                parse_terminal::<Type>(src).is_ok()
+            });
+            let thread = thread.join();
+
+            assert!(thread.is_ok());
+            assert!(thread.unwrap());
+        }
     }
+
+    insta_match_test!(it_matches_type_impl, Type: impl Hi);
+    insta_match_test!(it_matches_type_dyn, Type: dyn Hi);
+    insta_match_test!(it_matches_type_direct, Type: u16);
+    insta_match_test!(it_matches_type_path, Type: hello::World);
+
+    insta_match_test!(it_matches_paren_type, ParenthesizedType: u16);
+
+    insta_match_test!(it_matches_tuple_type_unit, TupleType: ());
+    insta_match_test!(it_matches_tuple_type_single, TupleType: (Hello,));
+    insta_match_test!(it_matches_tuple_type_duo, TupleType: (Hello, World));
+    insta_match_test!(it_matches_tuple_type_duo_trail, TupleType: (Hello, World,));
+
+    insta_match_test!(it_matches_raw_pointer_type, RawPointerType: *hello);
+    insta_match_test!(it_matches_raw_pointer_type_mut, RawPointerType: *mut hello);
+
+    insta_match_test!(it_matches_reference, ReferenceType: &hello);
+    insta_match_test!(it_matches_reference_mut, ReferenceType: &mut hello);
+
+    #[cfg(disable)]
+    insta_match_test!(it_matches_array_type, ArrayType: [i64; 10]);
+
+    insta_match_test!(it_matches_slice_type, SliceType: [i64]);
+
+    insta_match_test!(it_matches_never, NeverType: !);
+    insta_match_test!(it_matches_inferred, InferredType: _);
 }

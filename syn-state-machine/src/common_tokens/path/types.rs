@@ -1,5 +1,6 @@
 use super::super::*;
 use crate::*;
+use insta::assert_debug_snapshot;
 
 #[derive(Debug)]
 pub struct TypePathFn {
@@ -61,8 +62,7 @@ pub enum TypePathSegment {
 impl MappedParse for TypePathSegment {
     type Source = (
         PathIdentSegment,
-        Option<DoubleColon>,
-        Option<Either<GenericArgs, TypePathFn>>,
+        Option<(Option<DoubleColon>, MBox<Sum2<GenericArgs, TypePathFn>>)>,
     );
 
     type Output = Self;
@@ -71,12 +71,12 @@ impl MappedParse for TypePathSegment {
     fn map(
         src: SmOut<Self::Source>,
     ) -> Result<<Self as MappedParse>::Output, <Self as MappedParse>::Error> {
-        Ok(match src.2 {
-            Some(Either::Left(a)) => Self::Generic {
+        Ok(match src.1 {
+            Some((_, Sum2::Val0(a))) => Self::Generic {
                 id: src.0,
                 generic_args: a,
             },
-            Some(Either::Right(a)) => Self::TypePathFn {
+            Some((_, Sum2::Val1(a))) => Self::TypePathFn {
                 id: src.0,
                 path_fn: a,
             },
@@ -119,14 +119,19 @@ impl MappedParse for TypePath {
 
 #[cfg(test)]
 mod tests {
-    use quote::quote;
-
     use super::*;
-    use crate::parse_terminal;
+
+    insta_match_test!(it_matches_hello, TypePath: hello);
+    insta_match_test!(it_matches_tri_path, TypePath: hello::world::hi);
+    insta_match_test!(it_matches_bi_path, TypePath: hello::world);
+    insta_match_test!(it_matches_long_generic, TypePath: hello::<Hi>);
+    insta_match_test!(it_matches_short_generic, TypePath: hello<Hi>);
 
     #[test]
-    fn it_matches_simple_paths() {
-        println!("{:#?}", parse_terminal::<TypePath>(quote!(hello::world)));
-        println!("{:#?}", parse_terminal::<TypePath>(quote!(hello)));
+    fn it_matches_multigeneric_type_path() {
+        println!(
+            "{:#?}",
+            parse::<TypePath>(quote::quote!(hello<hello::Hi, 10, 'a>)).unwrap()
+        );
     }
 }

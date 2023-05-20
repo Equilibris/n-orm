@@ -1,0 +1,15 @@
+---
+source: syn-state-machine/src/common_tokens/extern_crate.rs
+expression: "crate::parse::<ExternCrate>(::quote::quote! { extern crate hi })"
+---
+Ok(
+    (
+        ExternCrate {
+            id: Ident(
+                hi,
+            ),
+            as: None,
+        },
+        0,
+    ),
+)

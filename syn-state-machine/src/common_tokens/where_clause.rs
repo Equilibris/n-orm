@@ -26,7 +26,7 @@ pub enum WhereClauseItem {
     TypeBoundWhereClauseItem(TypeBoundWhereClauseItem),
 }
 impl MappedParse for WhereClauseItem {
-    type Source = Either<LifetimeWhereClauseItem, TypeBoundWhereClauseItem>;
+    type Source = Sum2<LifetimeWhereClauseItem, TypeBoundWhereClauseItem>;
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -35,8 +35,8 @@ impl MappedParse for WhereClauseItem {
         src: SmOut<Self::Source>,
     ) -> Result<<Self as MappedParse>::Output, <Self as MappedParse>::Error> {
         Ok(match src {
-            Either::Left(a) => Self::LifetimeWhereClauseItem(a),
-            Either::Right(a) => Self::TypeBoundWhereClauseItem(a),
+            Sum2::Val0(a) => Self::LifetimeWhereClauseItem(a),
+            Sum2::Val1(a) => Self::TypeBoundWhereClauseItem(a),
         })
     }
 

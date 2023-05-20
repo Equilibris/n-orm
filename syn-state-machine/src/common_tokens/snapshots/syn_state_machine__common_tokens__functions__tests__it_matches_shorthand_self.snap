@@ -1,0 +1,15 @@
+---
+source: syn-state-machine/src/common_tokens/functions.rs
+expression: "crate::parse::<SelfParam>(::quote::quote! { self })"
+---
+Ok(
+    (
+        Shorthand(
+            ShorthandSelf {
+                ref: None,
+                mut: false,
+            },
+        ),
+        0,
+    ),
+)

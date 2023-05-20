@@ -1,10 +1,8 @@
-use either::Either::Left;
-use either::Either::Right;
+use std::fmt::Debug;
 
 use super::*;
 use crate::*;
 
-#[derive(Debug)]
 pub struct Function<T: Parsable = Tokens> {
     pub qualifiers: FunctionQualifiers,
 
@@ -19,6 +17,23 @@ pub struct Function<T: Parsable = Tokens> {
     pub returns: Option<Type>,
     pub body: Option<BlockExpression>,
 }
+impl<T: Parsable> Debug for Function<T>
+where
+    SmOut<T>: Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Function")
+            .field("qualifiers", &self.qualifiers)
+            .field("ident", &self.ident)
+            .field("generic_params", &self.generic_params)
+            .field("where_clause", &self.where_clause)
+            .field("self_param", &self.self_param)
+            .field("args", &self.args)
+            .field("returns", &self.returns)
+            .field("body", &self.body)
+            .finish()
+    }
+}
 impl<T: Parsable> MappedParse for Function<T> {
     type Source = (
         FunctionQualifiers,
@@ -28,7 +43,7 @@ impl<T: Parsable> MappedParse for Function<T> {
         Paren<FunctionParameters<T>>,
         Option<FunctionReturnType>,
         Option<WhereClause>,
-        Either<BlockExpression, Semi>,
+        Sum2<BlockExpression, Semi>,
     );
 
     type Output = Self;
@@ -47,7 +62,11 @@ impl<T: Parsable> MappedParse for Function<T> {
             self_param: src.4.self_param,
             args: src.4.params,
             returns: src.5.map(|v| v.1),
-            body: src.7.left(),
+            body: if let Sum2::Val0(a) = src.7 {
+                Some(a)
+            } else {
+                None
+            },
         })
     }
 
@@ -90,14 +109,24 @@ impl MappedParse for FunctionQualifiers {
     }
 }
 
-#[derive(Debug)]
 pub struct FunctionParameters<T: Parsable = Tokens> {
     pub self_param: Option<WithAttrs<T, SelfParam>>,
 
     pub params: Vec<WithAttrs<T, FunctionParam>>,
 }
+impl<T: Parsable> Debug for FunctionParameters<T>
+where
+    SmOut<T>: Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("FunctionParameters")
+            .field("self_param", &self.self_param)
+            .field("params", &self.params)
+            .finish()
+    }
+}
 impl<T: Parsable> MappedParse for FunctionParameters<T> {
-    type Source = Either<
+    type Source = Sum2<
         (
             Option<(WithAttrs<T, SelfParam>, Comma)>,
             Interlace<WithAttrs<T, FunctionParam>, Comma>,
@@ -112,11 +141,11 @@ impl<T: Parsable> MappedParse for FunctionParameters<T> {
         src: SmOut<Self::Source>,
     ) -> Result<<Self as MappedParse>::Output, <Self as MappedParse>::Error> {
         Ok(match src {
-            Left(a) => Self {
+            Sum2::Val0(a) => Self {
                 self_param: a.0.map(|v| v.0),
                 params: a.1 .0,
             },
-            Right(a) => Self {
+            Sum2::Val1(a) => Self {
                 self_param: Some(a.0),
                 params: Vec::new(),
             },
@@ -184,7 +213,7 @@ pub enum SelfParam {
     Typed(TypedSelf),
 }
 impl MappedParse for SelfParam {
-    type Source = Either<TypedSelf, ShorthandSelf>;
+    type Source = Sum2<TypedSelf, ShorthandSelf>;
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -193,8 +222,8 @@ impl MappedParse for SelfParam {
         src: SmOut<Self::Source>,
     ) -> Result<<Self as MappedParse>::Output, <Self as MappedParse>::Error> {
         Ok(match src {
-            Left(a) => Self::Typed(a),
-            Right(a) => Self::Shorthand(a),
+            Sum2::Val0(a) => Self::Typed(a),
+            Sum2::Val1(a) => Self::Shorthand(a),
         })
     }
 
@@ -203,16 +232,16 @@ impl MappedParse for SelfParam {
     }
 }
 
-type FunctionParamPattern = (PatternNoTopAlt, Colon, Either<Type, Elipsis>);
+type FunctionParamPattern = (PatternNoTopAlt, Colon, Sum2<Type, Elipsis>);
 
 #[derive(Debug)]
 pub enum FunctionParam {
-    Patterned(PatternNoTopAlt, Either<Type, Elipsis>),
+    Patterned(PatternNoTopAlt, Sum2<Type, Elipsis>),
     Type(Type),
     Elipsis,
 }
 impl MappedParse for FunctionParam {
-    type Source = Either<Either<FunctionParamPattern, Elipsis>, Type>;
+    type Source = Sum3<MBox<FunctionParamPattern>, Elipsis, MBox<Type>>;
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -221,9 +250,9 @@ impl MappedParse for FunctionParam {
         src: SmOut<Self::Source>,
     ) -> Result<<Self as MappedParse>::Output, <Self as MappedParse>::Error> {
         Ok(match src {
-            Left(Left(a)) => Self::Patterned(a.0, a.2),
-            Left(Right(_)) => Self::Elipsis,
-            Right(a) => Self::Type(a),
+            Sum3::Val0(a) => Self::Patterned(a.0, a.2),
+            Sum3::Val1(a) => Self::Elipsis,
+            Sum3::Val2(a) => Self::Type(a),
         })
     }
 
@@ -241,33 +270,8 @@ mod tests {
     use super::*;
     use crate::parse_terminal;
 
-    #[test]
-    fn it_matches_self() {
-        println!(
-            "{:#?}",
-            parse_terminal::<SelfParam>(quote::quote!(self)).unwrap()
-        );
+    insta_match_test!(it_matches_shorthand_self, SelfParam: self);
+    insta_match_test!(it_matches_typed_self, SelfParam: mut self: Box<Self>);
 
-        println!(
-            "{:#?}",
-            parse_terminal::<TypedSelf>(quote::quote!(mut self: Box<Self>)).unwrap()
-        );
-    }
-    #[test]
-    fn it_matches_simple_funs() {
-        println!(
-            "{:#?}",
-            parse_terminal::<(
-                // FunctionQualifiers,
-                // KwFn,
-                // Identifier,
-                // Option<GenericParams>,
-                FunctionParameters,
-                // Option<FunctionReturnType>,
-                // Option<WhereClause>,
-                // Either<BlockExpression, Semi>,
-            )>(quote::quote! {self})
-            .unwrap()
-        );
-    }
+    insta_match_test!(it_matches_complex_function, Function : const async unsafe extern "C" fn hello<T>(self, a: T) -> T;);
 }

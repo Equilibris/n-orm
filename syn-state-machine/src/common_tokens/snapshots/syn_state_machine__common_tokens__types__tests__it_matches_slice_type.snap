@@ -1,0 +1,27 @@
+---
+source: syn-state-machine/src/common_tokens/types.rs
+expression: "crate::parse::<SliceType>(::quote::quote! { [i64] })"
+---
+Ok(
+    (
+        SliceType(
+            NoBounds(
+                TypePath(
+                    TypePath {
+                        leading: false,
+                        segments: [
+                            Simple {
+                                id: Id(
+                                    Ident(
+                                        i64,
+                                    ),
+                                ),
+                            },
+                        ],
+                    },
+                ),
+            ),
+        ),
+        0,
+    ),
+)

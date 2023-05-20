@@ -1,0 +1,69 @@
+---
+source: syn-state-machine/src/common_tokens/types.rs
+expression: "crate::parse::<Type>(::quote::quote! { Box < Box < i8 >> })"
+---
+Ok(
+    (
+        NoBounds(
+            TypePath(
+                TypePath {
+                    leading: false,
+                    segments: [
+                        Generic {
+                            id: Id(
+                                Ident(
+                                    Box,
+                                ),
+                            ),
+                            generic_args: GenericArgs(
+                                [
+                                    Type(
+                                        NoBounds(
+                                            TypePath(
+                                                TypePath {
+                                                    leading: false,
+                                                    segments: [
+                                                        Generic {
+                                                            id: Id(
+                                                                Ident(
+                                                                    Box,
+                                                                ),
+                                                            ),
+                                                            generic_args: GenericArgs(
+                                                                [
+                                                                    Type(
+                                                                        NoBounds(
+                                                                            TypePath(
+                                                                                TypePath {
+                                                                                    leading: false,
+                                                                                    segments: [
+                                                                                        Simple {
+                                                                                            id: Id(
+                                                                                                Ident(
+                                                                                                    i8,
+                                                                                                ),
+                                                                                            ),
+                                                                                        },
+                                                                                    ],
+                                                                                },
+                                                                            ),
+                                                                        ),
+                                                                    ),
+                                                                ],
+                                                            ),
+                                                        },
+                                                    ],
+                                                },
+                                            ),
+                                        ),
+                                    ),
+                                ],
+                            ),
+                        },
+                    ],
+                },
+            ),
+        ),
+        0,
+    ),
+)

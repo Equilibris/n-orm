@@ -1,6 +1,5 @@
 use super::super::*;
 use crate::*;
-use Either::*;
 
 #[derive(Debug)]
 pub enum RangePattern {
@@ -10,9 +9,11 @@ pub enum RangePattern {
     ObsoleteRangePattern(ObsoleteRangePattern),
 }
 impl MappedParse for RangePattern {
-    type Source = Either<
-        Either<RangeInclusivePattern, RangeFromPattern>,
-        Either<RangeToInclusivePattern, ObsoleteRangePattern>,
+    type Source = Sum4<
+        RangeInclusivePattern,
+        RangeToInclusivePattern,
+        ObsoleteRangePattern,
+        RangeFromPattern,
     >;
 
     type Output = Self;
@@ -22,10 +23,10 @@ impl MappedParse for RangePattern {
         src: SmOut<Self::Source>,
     ) -> Result<<Self as MappedParse>::Output, <Self as MappedParse>::Error> {
         Ok(match src {
-            Left(Left(a)) => Self::RangeInclusivePattern(a),
-            Left(Right(a)) => Self::RangeFromPattern(a),
-            Right(Left(a)) => Self::RangeToInclusivePattern(a),
-            Right(Right(a)) => Self::ObsoleteRangePattern(a),
+            Sum4::Val0(a) => Self::RangeInclusivePattern(a),
+            Sum4::Val1(a) => Self::RangeToInclusivePattern(a),
+            Sum4::Val2(a) => Self::ObsoleteRangePattern(a),
+            Sum4::Val3(a) => Self::RangeFromPattern(a),
         })
     }
 
@@ -56,7 +57,7 @@ impl MappedParse for RangeInclusivePattern {
 #[derive(Debug)]
 pub struct RangeFromPattern(pub RangePatternBound);
 impl MappedParse for RangeFromPattern {
-    type Source = (RangePatternBound, DotDotEq);
+    type Source = (RangePatternBound, DotDot);
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -119,10 +120,7 @@ pub enum RangePatternBound {
     PathExpression(PathExpression),
 }
 impl MappedParse for RangePatternBound {
-    type Source = Either<
-        Either<Either<CharLit, ByteLit>, Either<SignedIntegerLit, SignedFloatLit>>,
-        PathExpression,
-    >;
+    type Source = Sum5<CharLit, ByteLit, SignedIntegerLit, SignedFloatLit, PathExpression>;
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -131,15 +129,25 @@ impl MappedParse for RangePatternBound {
         src: SmOut<Self::Source>,
     ) -> Result<<Self as MappedParse>::Output, <Self as MappedParse>::Error> {
         Ok(match src {
-            Left(Left(Left(a))) => Self::CharLit(a),
-            Left(Left(Right(a))) => Self::ByteLit(a),
-            Left(Right(Left(a))) => Self::SignedIntegerLit(a),
-            Left(Right(Right(a))) => Self::SignedFloatLit(a),
-            Right(a) => Self::PathExpression(a),
+            Sum5::Val0(a) => Self::CharLit(a),
+            Sum5::Val1(a) => Self::ByteLit(a),
+            Sum5::Val2(a) => Self::SignedIntegerLit(a),
+            Sum5::Val3(a) => Self::SignedFloatLit(a),
+            Sum5::Val4(a) => Self::PathExpression(a),
         })
     }
 
     fn map_err(src: SmErr<Self::Source>) -> <Self as MappedParse>::Error {
         src
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    insta_match_test!(it_matches_inclusive, RangePattern : 0..=10);
+    insta_match_test!(it_matches_from, RangePattern : 0..);
+    insta_match_test!(it_matches_to, RangePattern : ..=0);
+    insta_match_test!(it_matches_obsolete, RangePattern : 0...0);
 }

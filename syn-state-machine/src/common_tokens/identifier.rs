@@ -7,11 +7,11 @@ impl Parsable for IdentifierOrUnder {
     type StateMachine = Sm<
         AndNot<
             Ident,
-            Either<
+            Sum2<
                 super::keyword::Keyword,
-                Either<
-                    Either<FIdent<"r#crate">, FIdent<"r#super">>,
-                    Either<FIdent<"r#self">, FIdent<"r#Self">>,
+                Sum2<
+                    Sum2<FIdent<"r#crate">, FIdent<"r#super">>,
+                    Sum2<FIdent<"r#self">, FIdent<"r#Self">>,
                 >,
             >,
         >,

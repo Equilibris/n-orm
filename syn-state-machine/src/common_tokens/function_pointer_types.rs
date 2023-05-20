@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 use super::*;
 use crate::*;
 
@@ -42,7 +44,7 @@ pub enum FunctionParametersMaybeNamedVariadic {
     MaybeNamedFunctionParametersVariadic(MaybeNamedFunctionParametersVariadic),
 }
 impl MappedParse for FunctionParametersMaybeNamedVariadic {
-    type Source = Either<MaybeNamedFunctionParametersVariadic, MaybeNamedFunctionParameters>;
+    type Source = Sum2<MaybeNamedFunctionParametersVariadic, MaybeNamedFunctionParameters>;
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -51,8 +53,8 @@ impl MappedParse for FunctionParametersMaybeNamedVariadic {
         src: SmOut<Self::Source>,
     ) -> Result<<Self as MappedParse>::Output, <Self as MappedParse>::Error> {
         Ok(match src {
-            Either::Left(a) => Self::MaybeNamedFunctionParametersVariadic(a),
-            Either::Right(a) => Self::MaybeNamedFunctionParameters(a),
+            Sum2::Val0(a) => Self::MaybeNamedFunctionParametersVariadic(a),
+            Sum2::Val1(a) => Self::MaybeNamedFunctionParameters(a),
         })
     }
 
@@ -61,11 +63,22 @@ impl MappedParse for FunctionParametersMaybeNamedVariadic {
     }
 }
 
-#[derive(Debug)]
 pub struct MaybeNamedFunctionParametersVariadic<T: Parsable = Tokens>(
     pub Vec<MaybeNamedParam>,
     pub Attrs<T>,
 );
+
+impl<T: Parsable> Debug for MaybeNamedFunctionParametersVariadic<T>
+where
+    SmOut<T>: Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("MaybeNamedFunctionParametersVariadic")
+            .field(&self.0)
+            .field(&self.1)
+            .finish()
+    }
+}
 impl<T: Parsable> MappedParse for MaybeNamedFunctionParametersVariadic<T> {
     type Source = (
         MinLength<Interlace<MaybeNamedParam, Comma>>,
@@ -174,4 +187,20 @@ impl MappedParse for BareFunctionReturnType {
     fn map_err(src: SmErr<Self::Source>) -> <Self as MappedParse>::Error {
         src
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    insta_match_test!(
+        it_matches_complex_fun,
+        BareFunctionType: for<'a> unsafe extern "C" fn(Hello, World, ...) -> i64
+    );
+    insta_match_test!(it_matches_return, BareFunctionType: fn(Hello, World) -> i64);
+    insta_match_test!(it_matches_simple, BareFunctionType: fn());
+    insta_match_test!(
+        it_matches_qualified,
+        BareFunctionType: for<'a> unsafe extern "C" fn()
+    );
 }

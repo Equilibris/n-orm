@@ -1,0 +1,40 @@
+---
+source: syn-state-machine/src/common_tokens/impl_dyn_trait.rs
+expression: "crate::parse::<TraitObjectType>(::quote::quote! { dyn 'a + Hello })"
+---
+Ok(
+    (
+        TraitObjectType(
+            TypeParamBounds(
+                [
+                    Lifetime(
+                        Lifetime(
+                            Ident(
+                                a,
+                            ),
+                        ),
+                    ),
+                    TraitBound(
+                        TraitBound {
+                            q: false,
+                            for: None,
+                            ty: TypePath {
+                                leading: false,
+                                segments: [
+                                    Simple {
+                                        id: Id(
+                                            Ident(
+                                                Hello,
+                                            ),
+                                        ),
+                                    },
+                                ],
+                            },
+                        },
+                    ),
+                ],
+            ),
+        ),
+        0,
+    ),
+)

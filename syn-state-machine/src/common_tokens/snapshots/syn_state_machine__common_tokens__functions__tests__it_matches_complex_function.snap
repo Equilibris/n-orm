@@ -1,0 +1,113 @@
+---
+source: syn-state-machine/src/common_tokens/functions.rs
+expression: "crate::parse::<Function>(::quote::quote! {\n            const async unsafe extern \"C\" fn hello < T > (self, a : T) -> T ;\n        })"
+---
+Ok(
+    (
+        Function {
+            qualifiers: FunctionQualifiers {
+                const: true,
+                async: true,
+                unsafe: true,
+                extern: Some(
+                    Some(
+                        StringLit {
+                            raw: "\"C\"",
+                            value: None,
+                            num_hashes: None,
+                            start_suffix: 3,
+                        },
+                    ),
+                ),
+            },
+            ident: Ident(
+                hello,
+            ),
+            generic_params: Some(
+                GenericParams(
+                    [
+                        TypeParam(
+                            [],
+                            TypeParam {
+                                id: Ident(
+                                    T,
+                                ),
+                                bounds: None,
+                                ty: None,
+                            },
+                        ),
+                    ],
+                ),
+            ),
+            where_clause: None,
+            self_param: Some(
+                (
+                    [],
+                    Shorthand(
+                        ShorthandSelf {
+                            ref: None,
+                            mut: false,
+                        },
+                    ),
+                ),
+            ),
+            args: [
+                (
+                    [],
+                    Patterned(
+                        PatternWithoutRange(
+                            IdentifierPattern(
+                                IdentifierPattern {
+                                    ref: false,
+                                    mut: false,
+                                    id: Ident(
+                                        a,
+                                    ),
+                                    at_pattern: None,
+                                },
+                            ),
+                        ),
+                        Val0(
+                            NoBounds(
+                                TypePath(
+                                    TypePath {
+                                        leading: false,
+                                        segments: [
+                                            Simple {
+                                                id: Id(
+                                                    Ident(
+                                                        T,
+                                                    ),
+                                                ),
+                                            },
+                                        ],
+                                    },
+                                ),
+                            ),
+                        ),
+                    ),
+                ),
+            ],
+            returns: Some(
+                NoBounds(
+                    TypePath(
+                        TypePath {
+                            leading: false,
+                            segments: [
+                                Simple {
+                                    id: Id(
+                                        Ident(
+                                            T,
+                                        ),
+                                    ),
+                                },
+                            ],
+                        },
+                    ),
+                ),
+            ),
+            body: None,
+        },
+        0,
+    ),
+)

@@ -12,12 +12,12 @@ pub enum UseTree {
 }
 
 impl MappedParse for UseTree {
-    type Source = Either<
+    type Source = Sum2<
         (
             Option<(SimplePathOrNone, DoubleColon)>,
             Brace<(Interlace<UseTree, Comma>, Option<Comma>)>,
         ),
-        Either<(Option<(SimplePathOrNone, DoubleColon)>, Star), (SimplePath, AsClause)>,
+        Sum2<(Option<(SimplePathOrNone, DoubleColon)>, Star), (SimplePath, AsClause)>,
     >;
 
     type Output = Self;
@@ -26,18 +26,18 @@ impl MappedParse for UseTree {
     fn map(
         src: SmOut<Self::Source>,
     ) -> Result<<Self as MappedParse>::Output, <Self as MappedParse>::Error> {
-        use Either::*;
+        use Sum2::*;
 
         Ok(match src {
-            Right(Right(a)) => Self::Standard(a.0, a.1.map(|(_, a)| a)),
-            Left(a) => Self::Recursion {
+            Val1(Val1(a)) => Self::Standard(a.0, a.1.map(|(_, a)| a)),
+            Val0(a) => Self::Recursion {
                 name: match a.0 {
                     Some(a) => a.0,
                     None => SimplePathOrNone::default(),
                 },
                 deep: a.1 .0 .0,
             },
-            Right(Left((a, _))) => Self::Star({
+            Val1(Val0((a, _))) => Self::Star({
                 match a {
                     Some(a) => a.0,
                     None => SimplePathOrNone::default(),
@@ -81,16 +81,16 @@ mod tests {
             UseTree::Star(a) => {
                 for p in a.segments {
                     match p {
-                        Segment::Id(a) => source.push(a),
-                        Segment::DCrate => unimplemented!(),
+                        SimplePathSegment::Id(a) => source.push(a),
+                        SimplePathSegment::DCrate => unimplemented!(),
                     }
                 }
             }
             UseTree::Recursion { name, deep } => {
                 for p in name.segments {
                     match p {
-                        Segment::Id(a) => source.push(a),
-                        Segment::DCrate => unimplemented!(),
+                        SimplePathSegment::Id(a) => source.push(a),
+                        SimplePathSegment::DCrate => unimplemented!(),
                     }
                 }
 
@@ -101,8 +101,8 @@ mod tests {
             UseTree::Standard(s, t) => {
                 for p in s.segments {
                     match p {
-                        Segment::Id(a) => source.push(a),
-                        Segment::DCrate => unimplemented!(),
+                        SimplePathSegment::Id(a) => source.push(a),
+                        SimplePathSegment::DCrate => unimplemented!(),
                     }
                 }
 

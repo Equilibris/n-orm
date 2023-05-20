@@ -1,0 +1,71 @@
+---
+source: syn-state-machine/src/common_tokens/path.rs
+expression: "crate::parse::<PathInExpression>(::quote::quote! {\n            usize :: hello :: < Hello, World >\n        })"
+---
+Ok(
+    (
+        PathInExpression {
+            leading: false,
+            segments: [
+                PathExprSegment(
+                    Id(
+                        Ident(
+                            usize,
+                        ),
+                    ),
+                    None,
+                ),
+                PathExprSegment(
+                    Id(
+                        Ident(
+                            hello,
+                        ),
+                    ),
+                    Some(
+                        GenericArgs(
+                            [
+                                Type(
+                                    NoBounds(
+                                        TypePath(
+                                            TypePath {
+                                                leading: false,
+                                                segments: [
+                                                    Simple {
+                                                        id: Id(
+                                                            Ident(
+                                                                Hello,
+                                                            ),
+                                                        ),
+                                                    },
+                                                ],
+                                            },
+                                        ),
+                                    ),
+                                ),
+                                Type(
+                                    NoBounds(
+                                        TypePath(
+                                            TypePath {
+                                                leading: false,
+                                                segments: [
+                                                    Simple {
+                                                        id: Id(
+                                                            Ident(
+                                                                World,
+                                                            ),
+                                                        ),
+                                                    },
+                                                ],
+                                            },
+                                        ),
+                                    ),
+                                ),
+                            ],
+                        ),
+                    ),
+                ),
+            ],
+        },
+        0,
+    ),
+)

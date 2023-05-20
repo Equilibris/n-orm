@@ -1,0 +1,41 @@
+---
+source: syn-state-machine/src/common_tokens/bounds.rs
+expression: "crate::parse::<TypeParamBound>(::quote::quote! { std :: fmt :: Debug })"
+---
+Ok(
+    (
+        TraitBound(
+            TraitBound {
+                q: false,
+                for: None,
+                ty: TypePath {
+                    leading: false,
+                    segments: [
+                        Simple {
+                            id: Id(
+                                Ident(
+                                    std,
+                                ),
+                            ),
+                        },
+                        Simple {
+                            id: Id(
+                                Ident(
+                                    fmt,
+                                ),
+                            ),
+                        },
+                        Simple {
+                            id: Id(
+                                Ident(
+                                    Debug,
+                                ),
+                            ),
+                        },
+                    ],
+                },
+            },
+        ),
+        0,
+    ),
+)

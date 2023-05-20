@@ -1,16 +1,13 @@
 use super::super::*;
 use crate::*;
 #[derive(Debug)]
-pub enum Segment {
+pub enum SimplePathSegment {
     Id(Ident),
     DCrate,
 }
 
-impl MappedParse for Segment {
-    type Source = Either<
-        FlatEither<FlatEither<Identifier, KwSuper>, FlatEither<KwLowerSelf, KwCrate, Ident>>,
-        DollarCrate,
-    >;
+impl MappedParse for SimplePathSegment {
+    type Source = Sum2<FlatSum4<Identifier, KwSuper, KwLowerSelf, KwCrate>, DollarCrate>;
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -19,8 +16,8 @@ impl MappedParse for Segment {
         src: SmOut<Self::Source>,
     ) -> Result<<Self as MappedParse>::Output, <Self as MappedParse>::Error> {
         Ok(match src {
-            Either::Left(v) => Self::Id(v),
-            Either::Right(_) => Self::DCrate,
+            Sum2::Val0(v) => Self::Id(v),
+            Sum2::Val1(_) => Self::DCrate,
         })
     }
 
@@ -32,11 +29,14 @@ impl MappedParse for Segment {
 #[derive(Debug, Default)]
 pub struct SimplePathOrNone {
     pub leading_double_colon: bool,
-    pub segments: Vec<Segment>,
+    pub segments: Vec<SimplePathSegment>,
 }
 
 impl MappedParse for SimplePathOrNone {
-    type Source = (Option<DoubleColon>, Interlace<Segment, DoubleColon>);
+    type Source = (
+        Option<DoubleColon>,
+        Interlace<SimplePathSegment, DoubleColon>,
+    );
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -58,7 +58,7 @@ impl MappedParse for SimplePathOrNone {
 #[derive(Debug)]
 pub struct SimplePath {
     pub leading_double_colon: bool,
-    pub segments: Vec<Segment>,
+    pub segments: Vec<SimplePathSegment>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -108,7 +108,7 @@ mod tests {
 
         assert_eq!(path.leading_double_colon, false);
         assert_eq!(path.segments.len(), 1);
-        if let Some(Segment::Id(v)) = path.segments.into_iter().next() {
+        if let Some(SimplePathSegment::Id(v)) = path.segments.into_iter().next() {
             assert_eq!(v.to_string().as_str(), "hello");
         }
     }
@@ -124,7 +124,7 @@ mod tests {
             .into_iter()
             .zip(["hello", "world", "super", "crate", "self"].into_iter())
         {
-            if let Segment::Id(a) = a {
+            if let SimplePathSegment::Id(a) = a {
                 assert_eq!(a.to_string().as_str(), v);
             } else {
                 unreachable!()

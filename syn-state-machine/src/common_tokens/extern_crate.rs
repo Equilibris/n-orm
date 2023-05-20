@@ -1,12 +1,13 @@
 use super::*;
 use crate::*;
 
+#[derive(Debug)]
 pub struct ExternCrate {
     pub id: Ident,
     pub r#as: Option<Ident>,
 }
 
-pub type CrateRef = FlatEither<Identifier, KwLowerSelf>;
+pub type CrateRef = FlatSum2<Identifier, KwLowerSelf>;
 pub type AsClause = Option<(KwAs, IdentifierOrUnder)>;
 
 impl MappedParse for ExternCrate {
@@ -32,13 +33,7 @@ impl MappedParse for ExternCrate {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::*;
 
-    use quote::quote;
-
-    #[test]
-    fn it_matches() {
-        parse_terminal::<ExternCrate>(quote! { extern crate self as _; }).unwrap();
-        parse_terminal::<ExternCrate>(quote! { extern crate hi; }).unwrap();
-    }
+    insta_match_test!(it_matches_extern, ExternCrate : extern crate hi;);
+    insta_match_test!(it_matches_extern_as, ExternCrate : extern crate hi as _;);
 }

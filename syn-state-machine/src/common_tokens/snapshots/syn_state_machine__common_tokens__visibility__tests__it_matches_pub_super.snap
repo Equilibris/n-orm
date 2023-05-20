@@ -1,0 +1,10 @@
+---
+source: syn-state-machine/src/common_tokens/visibility.rs
+expression: "crate::parse::<Visibility>(::quote::quote! { pub(super) })"
+---
+Ok(
+    (
+        PubSuper,
+        0,
+    ),
+)

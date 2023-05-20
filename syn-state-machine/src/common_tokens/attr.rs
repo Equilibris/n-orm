@@ -1,15 +1,19 @@
 use crate::*;
 
 pub type WithAttrs<T, C> = (Attrs<T>, C);
+pub type WithInnerAttrs<T, C> = (InnerAttrs<T>, C);
 
 pub type Attrs<T> = Vec<OuterAttr<T>>;
 pub type InnerAttrs<T> = Vec<InnerAttr<T>>;
 
 pub struct OuterAttr<T: Parsable = Vec<TokenTree>>(pub SmOut<T>);
 
-impl<T: Parsable> std::fmt::Debug for OuterAttr<T> {
+impl<T: Parsable> std::fmt::Debug for OuterAttr<T>
+where
+    SmOut<T>: std::fmt::Debug,
+{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_tuple("OuterAttr").finish()
+        f.debug_tuple("OuterAttr").field(&self.0).finish()
     }
 }
 
@@ -48,4 +52,11 @@ impl<T: Parsable> MappedParse for InnerAttr<T> {
     fn map_err(src: SmErr<<Self as MappedParse>::Source>) -> Self::Error {
         src
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    insta_match_test!(it_matches_simple_function, OuterAttr<(Ident,Paren<Ident>)>: #[hello(world)]);
 }
