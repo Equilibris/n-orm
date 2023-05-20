@@ -21,4 +21,9 @@ impl StateMachine for Terminate {
     fn terminate(self) -> SmResult<Self::Output, Self::Error> {
         Ok((Self, 0))
     }
+
+    #[cfg(feature = "execution-debug")]
+    fn inspect(&self, depth: usize) {
+        println!("{}Termination", "  ".repeat(depth));
+    }
 }

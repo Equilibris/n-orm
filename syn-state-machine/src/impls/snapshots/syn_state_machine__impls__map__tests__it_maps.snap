@@ -1,0 +1,12 @@
+---
+source: syn-state-machine/src/impls/map.rs
+expression: "crate::parse::<V>(::quote::quote! { ident })"
+---
+Ok(
+    (
+        V(
+            "ident",
+        ),
+        0,
+    ),
+)

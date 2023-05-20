@@ -1,0 +1,32 @@
+---
+source: syn-state-machine/src/impls/box.rs
+expression: "crate::parse::<Test>(::quote::quote! { < > < })"
+---
+Ok(
+    (
+        Test(
+            Punct {
+                char: '<',
+                spacing: Alone,
+            },
+            Some(
+                Test(
+                    Punct {
+                        char: '>',
+                        spacing: Alone,
+                    },
+                    Some(
+                        Test(
+                            Punct {
+                                char: '<',
+                                spacing: Alone,
+                            },
+                            None,
+                        ),
+                    ),
+                ),
+            ),
+        ),
+        0,
+    ),
+)

@@ -7,17 +7,15 @@ pub trait MappedParse {
     type Error: std::error::Error;
 
     fn map(
-        src: SmOutput<Self::Source>,
+        src: SmOut<Self::Source>,
     ) -> Result<<Self as MappedParse>::Output, <Self as MappedParse>::Error>;
-    fn map_err(src: SmError<Self::Source>) -> <Self as MappedParse>::Error;
+    fn map_err(src: SmErr<Self::Source>) -> <Self as MappedParse>::Error;
 }
 
 pub struct MappedMachine<T: MappedParse>(Sm<T::Source>);
 
 impl<T: MappedParse> MappedMachine<T> {
-    fn map(
-        src: SmResult<SmOutput<T::Source>, SmError<T::Source>>,
-    ) -> SmResult<T::Output, T::Error> {
+    fn map(src: SmResult<SmOut<T::Source>, SmErr<T::Source>>) -> SmResult<T::Output, T::Error> {
         match src {
             Err(e) => Err(T::map_err(e)),
             Ok((ok, rl)) => match T::map(ok) {
@@ -49,35 +47,36 @@ impl<T: MappedParse> StateMachine for MappedMachine<T> {
     fn terminate(self) -> SmResult<Self::Output, Self::Error> {
         Self::map(self.0.terminate())
     }
+
+    #[cfg(feature = "execution-debug")]
+    fn inspect(&self, depth: usize) {
+        self.0.inspect(depth);
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use crate::*;
 
-    #[test]
-    fn it_maps() {
-        struct V(String);
+    #[derive(Debug)]
+    struct V(String);
 
-        impl MappedParse for V {
-            type Source = Ident;
+    impl MappedParse for V {
+        type Source = Ident;
 
-            type Output = Self;
-            type Error = SmError<Self::Source>;
+        type Output = Self;
+        type Error = SmErr<Self::Source>;
 
-            fn map(
-                src: SmOutput<Self::Source>,
-            ) -> Result<<Self as MappedParse>::Output, <Self as MappedParse>::Error> {
-                Ok(V(src.to_string()))
-            }
-
-            fn map_err(src: SmError<Self::Source>) -> <Self as MappedParse>::Error {
-                src
-            }
+        fn map(
+            src: SmOut<Self::Source>,
+        ) -> Result<<Self as MappedParse>::Output, <Self as MappedParse>::Error> {
+            Ok(V(src.to_string()))
         }
 
-        let (V(v), _) = parse::<V>(quote::quote! { hello }).unwrap();
-
-        assert_eq!(v.as_str(), "hello")
+        fn map_err(src: SmErr<Self::Source>) -> <Self as MappedParse>::Error {
+            src
+        }
     }
+
+    insta_match_test!(it_maps, V: ident);
 }

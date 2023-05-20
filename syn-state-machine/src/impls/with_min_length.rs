@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use crate::{Interlace, MappedParse, Parsable, SmError, SmOutput};
+use crate::{Interlace, InterlaceTrail, MappedParse, Parsable, SmErr, SmOut};
 
 pub struct MinLength<T, const COUNT: usize = 1>(PhantomData<T>);
 
@@ -15,11 +15,11 @@ pub enum LengthError<T: std::error::Error> {
 impl<T: Parsable, const COUNT: usize> MappedParse for MinLength<Vec<T>, COUNT> {
     type Source = Vec<T>;
 
-    type Output = SmOutput<Self::Source>;
-    type Error = LengthError<SmError<Self::Source>>;
+    type Output = SmOut<Self::Source>;
+    type Error = LengthError<SmErr<Self::Source>>;
 
     fn map(
-        src: crate::SmOutput<Self::Source>,
+        src: crate::SmOut<Self::Source>,
     ) -> Result<<Self as MappedParse>::Output, <Self as MappedParse>::Error> {
         if src.len() >= COUNT {
             Ok(src)
@@ -28,7 +28,7 @@ impl<T: Parsable, const COUNT: usize> MappedParse for MinLength<Vec<T>, COUNT> {
         }
     }
 
-    fn map_err(src: crate::SmError<Self::Source>) -> <Self as MappedParse>::Error {
+    fn map_err(src: crate::SmErr<Self::Source>) -> <Self as MappedParse>::Error {
         LengthError::Inner(src)
     }
 }
@@ -37,11 +37,11 @@ impl<A: Parsable, B: Parsable, const COUNT: usize> MappedParse
 {
     type Source = Interlace<A, B>;
 
-    type Output = SmOutput<Self::Source>;
-    type Error = LengthError<SmError<Self::Source>>;
+    type Output = SmOut<Self::Source>;
+    type Error = LengthError<SmErr<Self::Source>>;
 
     fn map(
-        src: crate::SmOutput<Self::Source>,
+        src: crate::SmOut<Self::Source>,
     ) -> Result<<Self as MappedParse>::Output, <Self as MappedParse>::Error> {
         if src.0.len() >= COUNT {
             Ok(src)
@@ -50,7 +50,30 @@ impl<A: Parsable, B: Parsable, const COUNT: usize> MappedParse
         }
     }
 
-    fn map_err(src: crate::SmError<Self::Source>) -> <Self as MappedParse>::Error {
+    fn map_err(src: crate::SmErr<Self::Source>) -> <Self as MappedParse>::Error {
+        LengthError::Inner(src)
+    }
+}
+
+impl<A: Parsable, B: Parsable, const COUNT: usize> MappedParse
+    for MinLength<InterlaceTrail<A, B>, COUNT>
+{
+    type Source = InterlaceTrail<A, B>;
+
+    type Output = SmOut<Self::Source>;
+    type Error = LengthError<SmErr<Self::Source>>;
+
+    fn map(
+        src: crate::SmOut<Self::Source>,
+    ) -> Result<<Self as MappedParse>::Output, <Self as MappedParse>::Error> {
+        if src.0.len() >= COUNT {
+            Ok(src)
+        } else {
+            Err(LengthError::InvalidLength(COUNT, src.0.len()))
+        }
+    }
+
+    fn map_err(src: crate::SmErr<Self::Source>) -> <Self as MappedParse>::Error {
         LengthError::Inner(src)
     }
 }

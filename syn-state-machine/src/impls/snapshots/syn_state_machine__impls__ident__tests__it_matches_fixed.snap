@@ -1,0 +1,14 @@
+---
+source: syn-state-machine/src/impls/ident.rs
+expression: "crate::parse::<FIdent<\"id\">>(::quote::quote! { id })"
+---
+Ok(
+    (
+        FIdent(
+            Ident(
+                id,
+            ),
+        ),
+        0,
+    ),
+)

@@ -1,0 +1,15 @@
+---
+source: syn-state-machine/src/impls/punct.rs
+expression: "crate::parse::<(FJointPunct<'\\''>, Ident)>(::quote::quote! { 'hello })"
+---
+Ok(
+    (
+        (
+            FJointPunct,
+            Ident(
+                hello,
+            ),
+        ),
+        0,
+    ),
+)

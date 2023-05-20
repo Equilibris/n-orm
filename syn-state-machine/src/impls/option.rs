@@ -29,24 +29,18 @@ impl<T: StateMachine> StateMachine for OptionMachine<T> {
             Err(_) => (None, run_length),
         })
     }
+
+    #[cfg(feature = "execution-debug")]
+    fn inspect(&self, depth: usize) {
+        println!("{}Option:", "  ".repeat(depth));
+        self.0.inspect(depth + 1);
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use crate::*;
 
-    #[test]
-    fn it_matches_only() {
-        let p = parse::<Option<Ident>>(quote::quote! { < }).unwrap();
-
-        assert_eq!(p.0, None);
-        assert_eq!(p.1, 1);
-    }
-    #[test]
-    fn it_returns_the_correct_length() {
-        let p = parse::<Option<(Ident, Ident)>>(quote::quote! { hi < }).unwrap();
-
-        assert_eq!(p.0, None);
-        assert_eq!(p.1, 2);
-    }
+    insta_match_test!(it_matches_only, Option<Ident> : <);
+    insta_match_test!(it_returns_the_correct_length, Option<(Ident, Ident)> : hi <);
 }

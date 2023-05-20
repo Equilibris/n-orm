@@ -1,0 +1,29 @@
+---
+source: syn-state-machine/src/impls/sum.rs
+expression: "crate::parse::<Sum5<(P, P, P, P, P), (P, P, P, P), (P, P, P), (P, P),\n        (P,)>>(::quote::quote! { .... })"
+---
+Ok(
+    (
+        Val1(
+            (
+                Punct {
+                    char: '.',
+                    spacing: Joint,
+                },
+                Punct {
+                    char: '.',
+                    spacing: Joint,
+                },
+                Punct {
+                    char: '.',
+                    spacing: Alone,
+                },
+                Punct {
+                    char: '.',
+                    spacing: Alone,
+                },
+            ),
+        ),
+        0,
+    ),
+)

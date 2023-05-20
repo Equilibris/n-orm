@@ -1,0 +1,14 @@
+---
+source: syn-state-machine/src/impls/sum.rs
+expression: "crate::parse::<Sum2<Ident, Punct>>(::quote::quote! { hello })"
+---
+Ok(
+    (
+        Val0(
+            Ident(
+                hello,
+            ),
+        ),
+        0,
+    ),
+)

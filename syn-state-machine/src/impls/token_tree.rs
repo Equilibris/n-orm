@@ -26,4 +26,9 @@ impl StateMachine for TokenTreeMachine {
     fn terminate(self) -> SmResult<Self::Output, Self::Error> {
         Err(Default::default())
     }
+
+    #[cfg(feature = "execution-debug")]
+    fn inspect(&self, depth: usize) {
+        println!("{}TokenTree", "  ".repeat(depth));
+    }
 }

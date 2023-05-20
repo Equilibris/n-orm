@@ -1,0 +1,10 @@
+---
+source: syn-state-machine/src/impls/option.rs
+expression: "crate::parse::<Option<(Ident, Ident)>>(::quote::quote! { hi < })"
+---
+Ok(
+    (
+        None,
+        2,
+    ),
+)

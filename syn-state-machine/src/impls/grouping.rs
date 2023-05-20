@@ -5,7 +5,19 @@ use proc_macro2::Delimiter;
 use crate::*;
 
 /// Matches a general grouping of either (), [], or {}
-pub struct Group<T: Parsable>(pub SmOutput<T>, pub Delimiter);
+pub struct Group<T: Parsable>(pub SmOut<T>, pub Delimiter);
+
+impl<T: Parsable> std::fmt::Debug for Group<T>
+where
+    SmOut<T>: std::fmt::Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("Group")
+            .field(&self.0)
+            .field(&self.1)
+            .finish()
+    }
+}
 
 impl<T: Parsable> Parsable for Group<T> {
     type StateMachine = GroupMachine<T>;
@@ -30,7 +42,7 @@ pub enum GroupError<T: std::error::Error> {
 
 impl<T: Parsable> StateMachine for GroupMachine<T> {
     type Output = Group<T>;
-    type Error = GroupError<TerminalError<SmError<T>>>;
+    type Error = GroupError<TerminalError<SmErr<T>>>;
 
     fn drive(self, val: &TokenTree) -> ControlFlow<SmResult<Self::Output, Self::Error>, Self> {
         ControlFlow::Break(match val {
@@ -44,6 +56,11 @@ impl<T: Parsable> StateMachine for GroupMachine<T> {
 
     fn terminate(self) -> SmResult<Self::Output, Self::Error> {
         Err(GroupError::Termination)
+    }
+
+    #[cfg(feature = "execution-debug")]
+    fn inspect(&self, depth: usize) {
+        println!("{}Group:", "  ".repeat(depth));
     }
 }
 
@@ -75,8 +92,8 @@ macro_rules! specified_group {
         }
 
         impl<T: Parsable> StateMachine for $machine<T> {
-            type Output = SmOutput<T>;
-            type Error = SpecifiedGroupError<TerminalError<SmError<T>>>;
+            type Output = SmOut<T>;
+            type Error = SpecifiedGroupError<TerminalError<SmErr<T>>>;
 
             fn drive(
                 self,
@@ -103,10 +120,15 @@ macro_rules! specified_group {
             fn terminate(self) -> SmResult<Self::Output, Self::Error> {
                 Err(SpecifiedGroupError::Termination)
             }
+
+            #[cfg(feature = "execution-debug")]
+            fn inspect(&self, depth: usize) {
+                println!("{}Group:", "  ".repeat(depth));
+            }
         }
     };
 }
-specified_group!(Parenthesis, ParenthesisMachine, Delimiter::Parenthesis);
+specified_group!(Paren, ParenthesisMachine, Delimiter::Parenthesis);
 specified_group!(Brace, BraceMachine, Delimiter::Brace);
 specified_group!(Bracket, BracketMachine, Delimiter::Bracket);
 specified_group!(NoneGroup, NoneMachine, Delimiter::None);
@@ -115,36 +137,7 @@ specified_group!(NoneGroup, NoneMachine, Delimiter::None);
 mod tests {
     use crate::*;
 
-    #[test]
-    fn it_matches_general_delim() {
-        let ((_, Group(content, _), _), l) =
-            match parse::<(Ident, Group<Ident>, Ident)>(quote::quote! { hello (world) hi }) {
-                Ok(o) => o,
-                Err(e) => panic!("{}", e),
-            };
-
-        assert_eq!(l, 0);
-        assert_eq!(content.to_string().as_str(), "world");
-    }
-    #[test]
-    fn it_matches_parenthesis() {
-        let ((_, content, _), l) =
-            parse::<(Ident, Parenthesis<Ident>, Ident)>(quote::quote! { hello (world) hi })
-                .unwrap();
-
-        assert_eq!(l, 0);
-        assert_eq!(content.to_string().as_str(), "world");
-
-        let a =
-            match parse::<(Ident, Parenthesis<Ident>, Ident)>(quote::quote! { hello {world} hi }) {
-                Ok(_) => panic!(),
-                Err(e) => e,
-            };
-
-        use TupleError::*;
-        match a {
-            AFailed(BFailed(_, SpecifiedGroupError::InvalidDelimiter(_, _))) => (),
-            _ => panic!(),
-        }
-    }
+    insta_match_test!(it_matches_general_delim, (Ident, Group<Ident>, Ident) : hello (world) hi );
+    insta_match_test!(it_matches_parenthesis, (Ident, Paren<Ident>, Ident) : hello (world) hi );
+    insta_match_test!(it_fails_on_wrong_delim, (Ident, Paren<Ident>, Ident) : hello {world} hi );
 }

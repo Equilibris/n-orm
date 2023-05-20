@@ -47,6 +47,11 @@ impl<const IDENT: &'static str> StateMachine for FixedIdentMachine<IDENT> {
     fn terminate(self) -> SmResult<Self::Output, Self::Error> {
         Err(Default::default())
     }
+
+    #[cfg(feature = "execution-debug")]
+    fn inspect(&self, depth: usize) {
+        println!("{}FixedIdent {}", "  ".repeat(depth), IDENT);
+    }
 }
 
 pub use proc_macro2::Ident;
@@ -81,24 +86,18 @@ impl StateMachine for IdentMachine {
     fn terminate(self) -> SmResult<Self::Output, Self::Error> {
         Err(Default::default())
     }
+
+    #[cfg(feature = "execution-debug")]
+    fn inspect(&self, depth: usize) {
+        println!("{}Ident", "  ".repeat(depth));
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use crate::*;
 
-    #[test]
-    fn it_matches_only() {
-        let v = parse_terminal::<Ident>(quote::quote! { id }).unwrap();
-
-        assert_eq!(v.to_string().as_str(), "id");
-    }
-    #[test]
-    fn it_matches_fixed() {
-        parse_terminal::<FIdent<"id">>(quote::quote! { id }).unwrap();
-    }
-    #[test]
-    fn it_fails_on_incorrect() {
-        parse_terminal::<FIdent<"id">>(quote::quote! { ident }).unwrap_err();
-    }
+    insta_match_test!(it_matches_id, Ident: id);
+    insta_match_test!(it_matches_fixed, FIdent<"id"> : id);
+    insta_match_test!(it_fails_on_incorrect, FIdent<"id"> : ident);
 }

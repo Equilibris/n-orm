@@ -1,0 +1,61 @@
+---
+source: syn-state-machine/src/impls/interlace.rs
+expression: "crate::parse::<Interlace<(Ident, Option<(Two, Ident)>),\n        Two>>(::quote::quote! { r1 :: r2 :: r3 :: r4 :: r5 })"
+---
+Ok(
+    (
+        Interlace(
+            [
+                (
+                    Ident(
+                        r1,
+                    ),
+                    Some(
+                        (
+                            (
+                                FPunct,
+                                FPunct,
+                            ),
+                            Ident(
+                                r2,
+                            ),
+                        ),
+                    ),
+                ),
+                (
+                    Ident(
+                        r3,
+                    ),
+                    Some(
+                        (
+                            (
+                                FPunct,
+                                FPunct,
+                            ),
+                            Ident(
+                                r4,
+                            ),
+                        ),
+                    ),
+                ),
+                (
+                    Ident(
+                        r5,
+                    ),
+                    None,
+                ),
+            ],
+            [
+                (
+                    FPunct,
+                    FPunct,
+                ),
+                (
+                    FPunct,
+                    FPunct,
+                ),
+            ],
+        ),
+        0,
+    ),
+)

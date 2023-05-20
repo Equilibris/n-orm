@@ -1,0 +1,15 @@
+---
+source: syn-state-machine/src/impls/typed_literal.rs
+expression: "crate::parse::<FloatLit>(::quote::quote! { 0.0 })"
+---
+Ok(
+    (
+        FloatLit {
+            raw: "0.0",
+            end_integer_part: 1,
+            end_fractional_part: 3,
+            end_number_part: 3,
+        },
+        0,
+    ),
+)

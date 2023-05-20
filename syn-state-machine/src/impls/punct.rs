@@ -35,6 +35,11 @@ impl<const PUNCT: char> StateMachine for FixedPunctMachine<PUNCT> {
     fn terminate(self) -> SmResult<Self::Output, Self::Error> {
         Err(Self::Error::default())
     }
+
+    #[cfg(feature = "execution-debug")]
+    fn inspect(&self, depth: usize) {
+        println!("{}FixedPunct {}", "  ".repeat(depth), PUNCT);
+    }
 }
 
 #[derive(Debug, Clone, thiserror::Error, Default)]
@@ -69,6 +74,11 @@ impl StateMachine for PunctMachine {
 
     fn terminate(self) -> SmResult<Self::Output, Self::Error> {
         Err(Self::Error::default())
+    }
+
+    #[cfg(feature = "execution-debug")]
+    fn inspect(&self, depth: usize) {
+        println!("{}Punct", "  ".repeat(depth));
     }
 }
 
@@ -140,6 +150,11 @@ macro_rules! spaced_punct {
             fn terminate(self) -> SmResult<Self::Output, Self::Error> {
                 Err(Self::Error::default())
             }
+
+            #[cfg(feature = "execution-debug")]
+            fn inspect(&self, depth: usize) {
+                println!("{}FixedPunct {}", "  ".repeat(depth), PUNCT);
+            }
         }
         pub struct $name;
         #[derive(Clone, Default)]
@@ -175,6 +190,11 @@ macro_rules! spaced_punct {
             fn terminate(self) -> SmResult<Self::Output, Self::Error> {
                 Err(Self::Error::default())
             }
+
+            #[cfg(feature = "execution-debug")]
+            fn inspect(&self, depth: usize) {
+                println!("{}Punct ", "  ".repeat(depth));
+            }
         }
     };
 }
@@ -202,48 +222,13 @@ spaced_punct!(
 mod tests {
     use crate::*;
 
-    #[test]
-    fn it_matches_only() {
-        let v = parse_terminal::<Punct>(quote::quote! { < }).unwrap();
+    insta_match_test!(it_matches_only, Punct : < );
+    insta_match_test!(it_matches_fixed, FPunct<'<'> : < );
+    insta_match_test!(it_matches_dollar, FPunct<'$'> : $ );
 
-        assert_eq!(v.as_char(), '<');
-    }
-    #[test]
-    fn it_matches_fixed() {
-        parse_terminal::<FPunct<'<'>>(quote::quote! { < }).unwrap();
-    }
-    #[test]
-    fn it_matches_dollar() {
-        parse_terminal::<FPunct<'$'>>(quote::quote! { $ }).unwrap();
-        parse_terminal::<(FPunct<'$'>, FPunct<'$'>)>(quote::quote! { $$ }).unwrap();
-    }
-    #[test]
-    fn it_fails_on_incorrect() {
-        parse_terminal::<FIdent<"id">>(quote::quote! { ident }).unwrap_err();
-    }
+    insta_match_test!(it_matches_joint, (FJointPunct<'\''>, Ident) : 'hello );
+    insta_match_test!(it_matches_alone, (FAlonePunct<'\''>, Ident) : 'hello );
+    insta_match_test!(it_matches_both, (FJointPunct<'<'>, FAlonePunct<'='>) : <= );
 
-    #[test]
-    fn it_matches_joint() {
-        parse_terminal::<(FJointPunct<'\''>, Ident)>(quote::quote! { 'hello }).unwrap();
-        parse_terminal::<(FAlonePunct<'\''>, Ident)>(quote::quote! { 'hello }).unwrap_err();
-    }
-    #[test]
-    fn it_matches_alone() {
-        parse_terminal::<(FAlonePunct<'<'>, Ident)>(quote::quote! { < hello }).unwrap();
-        parse_terminal::<(FJointPunct<'<'>, Ident)>(quote::quote! { < hello }).unwrap_err();
-    }
-
-    #[test]
-    fn it_matches_both() {
-        parse_terminal::<(FJointPunct<'<'>, FAlonePunct<'='>)>(quote::quote! { <= }).unwrap();
-        parse_terminal::<(FJointPunct<'<'>, FAlonePunct<'='>, FAlonePunct<'='>)>(
-            quote::quote! { <== },
-        )
-        .unwrap();
-    }
-
-    #[test]
-    fn dollar_crate() {
-        parse_terminal::<(FPunct<'$'>, FIdent<"crate">)>(quote::quote!( $crate )).unwrap();
-    }
+    insta_match_test!(it_matches_dollar_crate, (FPunct<'$'>,FIdent<"crate">) : $crate);
 }

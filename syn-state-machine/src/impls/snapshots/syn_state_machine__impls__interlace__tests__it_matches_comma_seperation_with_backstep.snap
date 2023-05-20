@@ -1,0 +1,42 @@
+---
+source: syn-state-machine/src/impls/interlace.rs
+expression: "crate::parse::<Interlace<(Ident, Option<Ident>),\n        FPunct<','>>>(::quote::quote! { hello, world, hi, there })"
+---
+Ok(
+    (
+        Interlace(
+            [
+                (
+                    Ident(
+                        hello,
+                    ),
+                    None,
+                ),
+                (
+                    Ident(
+                        world,
+                    ),
+                    None,
+                ),
+                (
+                    Ident(
+                        hi,
+                    ),
+                    None,
+                ),
+                (
+                    Ident(
+                        there,
+                    ),
+                    None,
+                ),
+            ],
+            [
+                FPunct,
+                FPunct,
+                FPunct,
+            ],
+        ),
+        0,
+    ),
+)

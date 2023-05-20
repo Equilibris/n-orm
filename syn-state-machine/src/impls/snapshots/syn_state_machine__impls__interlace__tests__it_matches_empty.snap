@@ -1,0 +1,13 @@
+---
+source: syn-state-machine/src/impls/interlace.rs
+expression: "crate::parse::<Interlace<Ident, FPunct<','>>>(::quote::quote! {})"
+---
+Ok(
+    (
+        Interlace(
+            [],
+            [],
+        ),
+        0,
+    ),
+)

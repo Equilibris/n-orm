@@ -1,0 +1,20 @@
+---
+source: syn-state-machine/src/impls/typed_literal.rs
+expression: "crate::parse::<SignedIntegerLit>(::quote::quote! { - 10 })"
+---
+Ok(
+    (
+        (
+            Some(
+                FPunct,
+            ),
+            IntegerLit {
+                raw: "10",
+                start_main_part: 0,
+                end_main_part: 2,
+                base: Decimal,
+            },
+        ),
+        0,
+    ),
+)

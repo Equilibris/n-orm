@@ -143,11 +143,38 @@ impl<A: StateMachine> StateMachine for VecMachine<A> {
             Err(_) => Ok((contents, checkpoint)),
         }
     }
+
+    #[cfg(feature = "execution-debug")]
+    fn inspect(&self, depth: usize) {
+        println!("{}Vec:", "  ".repeat(depth));
+        self.machine.inspect(depth + 1);
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use crate::*;
+
+    use quote::quote;
+
+    #[test]
+    fn it_matches_esoterics() {
+        type Two = (FPunct<':'>, FPunct<':'>);
+
+        let path = parse_terminal::<Vec<(Ident, Option<(Two, Ident)>, Two)>>(quote!(
+            r1::r2::r3::r4::r5::
+        ))
+        .unwrap();
+
+        for ((a1, b1, _), (a2, b2)) in
+            path.into_iter()
+                .zip([("r1", Some("r2")), ("r3", Some("r4")), ("r5", None)])
+        {
+            let b1 = b1.map(|v| v.1.to_string());
+            assert_eq!(a1.to_string().as_str(), a2);
+            assert_eq!(b1, b2.map(|v| v.to_owned()));
+        }
+    }
 
     #[test]
     fn it_matches_catch_all() {

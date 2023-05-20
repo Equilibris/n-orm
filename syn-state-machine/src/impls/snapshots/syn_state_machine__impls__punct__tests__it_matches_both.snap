@@ -1,0 +1,13 @@
+---
+source: syn-state-machine/src/impls/punct.rs
+expression: "crate::parse::<(FJointPunct<'<'>, FAlonePunct<'='>)>(::quote::quote! { <= })"
+---
+Ok(
+    (
+        (
+            FJointPunct,
+            FAlonePunct,
+        ),
+        0,
+    ),
+)

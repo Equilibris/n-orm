@@ -1,0 +1,23 @@
+---
+source: syn-state-machine/src/impls/interlace.rs
+expression: "crate::parse::<InterlaceTrail<Ident,\n        FPunct<','>>>(::quote::quote! { hi, hello, })"
+---
+Ok(
+    (
+        InterlaceTrail(
+            [
+                Ident(
+                    hi,
+                ),
+                Ident(
+                    hello,
+                ),
+            ],
+            [
+                FPunct,
+                FPunct,
+            ],
+        ),
+        0,
+    ),
+)

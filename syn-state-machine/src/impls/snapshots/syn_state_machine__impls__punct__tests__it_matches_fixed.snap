@@ -1,0 +1,10 @@
+---
+source: syn-state-machine/src/impls/punct.rs
+expression: "crate::parse::<FPunct<'<'>>(::quote::quote! { < })"
+---
+Ok(
+    (
+        FPunct,
+        0,
+    ),
+)

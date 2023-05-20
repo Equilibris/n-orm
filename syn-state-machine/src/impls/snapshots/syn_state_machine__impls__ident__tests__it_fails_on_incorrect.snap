@@ -1,0 +1,11 @@
+---
+source: syn-state-machine/src/impls/ident.rs
+expression: "crate::parse::<FIdent<\"id\">>(::quote::quote! { ident })"
+---
+Err(
+    Val(
+        Ident {
+            sym: ident,
+        },
+    ),
+)

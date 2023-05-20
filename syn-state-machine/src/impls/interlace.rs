@@ -1,5 +1,8 @@
+use std::fmt::Debug;
+
 use crate::*;
 
+// pub struct Interlace<A: Parsable, B: Parsable>(pub Vec<SmOut<A>>, pub Vec<SmOut<B>>);
 #[derive(Debug)]
 pub struct Interlace<A, B>(pub Vec<A>, pub Vec<B>);
 
@@ -13,7 +16,7 @@ pub struct InterlaceMachine<A: StateMachine, B: StateMachine> {
 
     b_parking: Option<B::Output>,
 
-    machine: Either<A, B>,
+    machine: Sum2<A, B>,
 
     history: Vec<TokenTree>,
     checkpoint: usize,
@@ -26,7 +29,7 @@ impl<A: StateMachine, B: StateMachine> InterlaceMachine<A, B> {
     ) -> ControlFlow<SmResult<<Self as StateMachine>::Output, <Self as StateMachine>::Error>, Self>
     {
         use ControlFlow::*;
-        use Either::*;
+        use Sum2::*;
 
         let Self {
             mut contents_a,
@@ -44,8 +47,8 @@ impl<A: StateMachine, B: StateMachine> InterlaceMachine<A, B> {
 
         while rl > 0 {
             match machine {
-                Left(v) => match v.drive(&history[len - rl]) {
-                    Continue(c) => machine = Left(c),
+                Val0(v) => match v.drive(&history[len - rl]) {
+                    Continue(c) => machine = Val0(c),
                     Break(Ok((ok, backtrack))) => {
                         rl += backtrack;
                         checkpoint = rl;
@@ -56,19 +59,19 @@ impl<A: StateMachine, B: StateMachine> InterlaceMachine<A, B> {
                         b_parking = None;
 
                         contents_a.push(ok);
-                        machine = Right(B::default());
+                        machine = Val1(B::default());
                     }
                     Break(Err(_)) => {
                         return Break(Ok((Interlace(contents_a, contents_b), checkpoint)));
                     }
                 },
-                Right(v) => match v.drive(&history[len - rl]) {
-                    Continue(c) => machine = Right(c),
+                Val1(v) => match v.drive(&history[len - rl]) {
+                    Continue(c) => machine = Val1(c),
                     Break(Ok((ok, backtrack))) => {
                         rl += backtrack;
 
                         b_parking = Some(ok);
-                        machine = Left(A::default());
+                        machine = Val0(A::default());
                     }
                     Break(Err(_)) => {
                         return Break(Ok((Interlace(contents_a, contents_b), checkpoint)));
@@ -99,7 +102,7 @@ impl<A: StateMachine, B: StateMachine> Default for InterlaceMachine<A, B> {
 
             b_parking: Default::default(),
 
-            machine: Either::Left(Default::default()),
+            machine: Sum2::Val0(Default::default()),
 
             history: Default::default(),
             checkpoint: Default::default(),
@@ -113,7 +116,7 @@ impl<A: StateMachine, B: StateMachine> StateMachine for InterlaceMachine<A, B> {
 
     fn drive(self, val: &TokenTree) -> ControlFlow<SmResult<Self::Output, Self::Error>, Self> {
         use ControlFlow::*;
-        use Either::*;
+        use Sum2::*;
 
         let Self {
             mut contents_a,
@@ -130,14 +133,14 @@ impl<A: StateMachine, B: StateMachine> StateMachine for InterlaceMachine<A, B> {
         checkpoint += 1;
 
         match machine {
-            Left(machine) => match machine.drive(val) {
+            Val0(machine) => match machine.drive(val) {
                 Continue(machine) => Continue(Self {
                     contents_a,
                     contents_b,
 
                     b_parking,
 
-                    machine: Left(machine),
+                    machine: Val0(machine),
                     history,
                     checkpoint,
                 }),
@@ -156,7 +159,7 @@ impl<A: StateMachine, B: StateMachine> StateMachine for InterlaceMachine<A, B> {
 
                         b_parking,
 
-                        machine: Right(B::default()),
+                        machine: Val1(B::default()),
                         history,
                         checkpoint,
                     }
@@ -164,14 +167,14 @@ impl<A: StateMachine, B: StateMachine> StateMachine for InterlaceMachine<A, B> {
                 }
                 Break(Err(_)) => Break(Ok((Interlace(contents_a, contents_b), checkpoint))),
             },
-            Right(machine) => match machine.drive(val) {
+            Val1(machine) => match machine.drive(val) {
                 Continue(machine) => Continue(Self {
                     contents_a,
                     contents_b,
 
                     b_parking,
 
-                    machine: Right(machine),
+                    machine: Val1(machine),
                     history,
                     checkpoint,
                 }),
@@ -184,7 +187,7 @@ impl<A: StateMachine, B: StateMachine> StateMachine for InterlaceMachine<A, B> {
 
                         b_parking,
 
-                        machine: Left(A::default()),
+                        machine: Val0(A::default()),
                         history,
                         checkpoint,
                     }
@@ -197,7 +200,7 @@ impl<A: StateMachine, B: StateMachine> StateMachine for InterlaceMachine<A, B> {
 
     fn terminate(self) -> SmResult<Self::Output, Self::Error> {
         use ControlFlow::*;
-        use Either::*;
+        use Sum2::*;
 
         let Self {
             mut contents_a,
@@ -212,7 +215,7 @@ impl<A: StateMachine, B: StateMachine> StateMachine for InterlaceMachine<A, B> {
         } = self;
 
         match machine {
-            Left(machine) => match machine.terminate() {
+            Val0(machine) => match machine.terminate() {
                 Ok((v, rl)) => {
                     checkpoint = rl;
                     contents_a.push(v);
@@ -228,7 +231,7 @@ impl<A: StateMachine, B: StateMachine> StateMachine for InterlaceMachine<A, B> {
 
                         b_parking,
 
-                        machine: Right(B::default()),
+                        machine: Val1(B::default()),
                         history,
                         checkpoint,
                     }
@@ -240,7 +243,7 @@ impl<A: StateMachine, B: StateMachine> StateMachine for InterlaceMachine<A, B> {
                 }
                 Err(_) => Ok((Interlace(contents_a, contents_b), checkpoint)),
             },
-            Right(machine) => match machine.terminate() {
+            Val1(machine) => match machine.terminate() {
                 Ok((v, rl)) => {
                     b_parking = Some(v);
 
@@ -250,7 +253,7 @@ impl<A: StateMachine, B: StateMachine> StateMachine for InterlaceMachine<A, B> {
 
                         b_parking,
 
-                        machine: Left(A::default()),
+                        machine: Val0(A::default()),
                         history,
                         checkpoint,
                     }
@@ -264,67 +267,67 @@ impl<A: StateMachine, B: StateMachine> StateMachine for InterlaceMachine<A, B> {
             },
         }
     }
+
+    #[cfg(feature = "execution-debug")]
+    fn inspect(&self, depth: usize) {
+        match self.machine {
+            Sum2::Val0(ref a) => {
+                println!("{}Interlace Main :", "  ".repeat(depth));
+                a.inspect(depth + 1)
+            }
+            Sum2::Val1(ref a) => {
+                println!("{}Interlace Secondary :", "  ".repeat(depth));
+                a.inspect(depth + 1)
+            }
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct InterlaceTrail<A, B>(pub Vec<A>, pub Vec<B>);
+impl<A: Parsable, B: Parsable> MappedParse for InterlaceTrail<A, B> {
+    type Source = Option<(MinLength<Interlace<A, B>>, Option<B>)>;
+
+    type Output = InterlaceTrail<SmOut<A>, SmOut<B>>;
+    type Error = SmErr<Self::Source>;
+
+    fn map(
+        src: SmOut<Self::Source>,
+    ) -> Result<<Self as MappedParse>::Output, <Self as MappedParse>::Error> {
+        Ok(match src {
+            Some((Interlace(a, mut b), Some(c))) => {
+                b.push(c);
+                InterlaceTrail(a, b)
+            }
+            Some((Interlace(a, b), None)) => InterlaceTrail(a, b),
+            None => InterlaceTrail(Vec::new(), Vec::new()),
+        })
+    }
+
+    fn map_err(src: SmErr<Self::Source>) -> <Self as MappedParse>::Error {
+        src
+    }
 }
 
 #[cfg(test)]
 mod tests {
+    use quote::quote;
+
     use crate::*;
 
-    #[test]
-    fn it_matches_tokens_after_interlace() {
-        let path = parse::<(
-            Interlace<Ident, (FJointPunct<':'>, FPunct<':'>)>,
-            (FPunct<'>'>, FPunct<';'>),
-        )>(quote::quote! { hello > ;});
+    type Two = (FPunct<':'>, FPunct<':'>);
 
-        match path {
-            Ok(p) => println!("{:#?}", p),
-            Err(e) => panic!("{}", e),
-        }
-    }
+    insta_match_test!(it_matches_esoterics, Interlace<(Ident, Option<(Two, Ident)>), Two> : r1::r2::r3::r4::r5);
+    insta_match_test!(it_matches_empty, Interlace<Ident, FPunct<','>> : );
+    insta_match_test!(it_matches_tokens_after_interlace, 
+                      (Interlace<Ident, (FJointPunct<':'>, FPunct<':'>)>, (FPunct<'>'>, FPunct<';'>),) 
+                      :  hello > ;);
+    insta_match_test!(it_matches_comma_seperation, Interlace<Ident, FPunct<','>> :  hello, world, hi, there,);
+    insta_match_test!(it_matches_comma_seperation_with_backstep, Interlace<(Ident, Option<Ident>), FPunct<','>> :  hello, world, hi, there);
+    insta_match_test!(it_matches_with_arbitrarilly_sized_interlacing, Interlace<(Ident, Option<Ident>), Vec<FPunct<','>>> : hello hi world,,, hi, there  hello, world, hi, there);
 
-    #[test]
-    fn it_matches_comma_seperation() {
-        let (v, l) =
-            parse::<Interlace<Ident, FPunct<','>>>(quote::quote! { hello, world, hi, there, })
-                .unwrap();
+    insta_match_test!(it_matches_with_arbitrarilly, Interlace<(Ident, Vec<Ident>), Vec<FPunct<','>>> :  hello hi world,,, hi, there );
 
-        assert_eq!(v.0.len(), 4);
-        assert_eq!(v.1.len(), 3);
-        assert_eq!(l, 1);
-    }
-    #[test]
-    fn it_matches_comma_seperation_with_backstep() {
-        let (v, l) = parse::<Interlace<(Ident, Option<Ident>), FPunct<','>>>(
-            quote::quote! { hello hi, world, hi, there },
-        )
-        .unwrap();
-
-        assert_eq!(v.0.len(), 4);
-        assert_eq!(v.1.len(), 3);
-        assert_eq!(l, 0);
-    }
-
-    #[test]
-    fn it_matches_with_arbitrarilly_sized_interlacing() {
-        let (v, l) = parse::<Interlace<(Ident, Option<Ident>), Vec<FPunct<','>>>>(
-            quote::quote! { hello hi world,,, hi, there },
-        )
-        .unwrap();
-
-        assert_eq!(v.0.len(), 4);
-        assert_eq!(v.1.len(), 3);
-        assert_eq!(l, 0);
-    }
-    #[test]
-    fn it_matches_with_arbitrarilly() {
-        let (v, l) = parse::<Interlace<(Ident, Vec<Ident>), Vec<FPunct<','>>>>(
-            quote::quote! { hello hi world,,, hi, there },
-        )
-        .unwrap();
-
-        assert_eq!(l, 0);
-        assert_eq!(v.0.len(), 3);
-        assert_eq!(v.1.len(), 2);
-    }
+    insta_match_test!(it_matches_trailing, InterlaceTrail<Ident, FPunct<','>>: hi, hello);
+    insta_match_test!(it_matches_trailing_with, InterlaceTrail<Ident, FPunct<','>>: hi, hello,);
 }

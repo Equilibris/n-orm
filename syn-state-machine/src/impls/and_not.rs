@@ -1,7 +1,5 @@
 use std::marker::PhantomData;
 
-use either::Either;
-
 use crate::*;
 
 pub struct AndNot<Valid: Parsable, Not: Parsable>(PhantomData<(Valid, Not)>);
@@ -11,15 +9,15 @@ impl<Valid: Parsable, Not: Parsable> Parsable for AndNot<Valid, Not> {
 }
 
 pub struct AndNotMachine<Valid: StateMachine, Not: StateMachine> {
-    v: Either<Valid, SmResult<Valid::Output, Valid::Error>>,
-    n: Either<Not, SmResult<Not::Output, Not::Error>>,
+    primary: Sum2<Valid, SmResult<Valid::Output, Valid::Error>>,
+    negation: Sum2<Not, SmResult<Not::Output, Not::Error>>,
 }
 
 impl<Valid: StateMachine, Not: StateMachine> Default for AndNotMachine<Valid, Not> {
     fn default() -> Self {
         Self {
-            v: Either::Left(Default::default()),
-            n: Either::Left(Default::default()),
+            primary: Sum2::Val0(Default::default()),
+            negation: Sum2::Val0(Default::default()),
         }
     }
 }
@@ -51,44 +49,47 @@ impl<Valid: StateMachine, Not: StateMachine> StateMachine for AndNotMachine<Vali
 
     fn drive(self, val: &TokenTree) -> ControlFlow<SmResult<Self::Output, Self::Error>, Self> {
         use ControlFlow::*;
-        use Either::*;
+        use Sum2::*;
 
-        let v = match self.v {
-            Left(l) => match l.drive(val) {
-                Continue(c) => Left(c),
-                Break(b) => Right(b),
+        let v = match self.primary {
+            Val0(l) => match l.drive(val) {
+                Continue(c) => Val0(c),
+                Break(b) => Val1(b),
             },
-            Right(Ok((r, l))) => Right(Ok((r, l + 1))),
+            Val1(Ok((r, l))) => Val1(Ok((r, l + 1))),
             r => r,
         };
 
-        let n = match self.n {
-            Left(l) => match l.drive(val) {
-                Continue(c) => Left(c),
-                Break(b) => Right(b),
+        let n = match self.negation {
+            Val0(l) => match l.drive(val) {
+                Continue(c) => Val0(c),
+                Break(b) => Val1(b),
             },
-            Right(Ok((r, l))) => Right(Ok((r, l + 1))),
+            Val1(Ok((r, l))) => Val1(Ok((r, l + 1))),
             r => r,
         };
 
         match (v, n) {
-            (Right(Ok(v)), Right(Err(_))) => Break(Ok(v)),
-            (Right(Ok(v)), Right(Ok(n))) => Break(Err(AndNotError::FailedCondition(v, n))),
-            (Right(Err(v)), Right(_)) => Break(Err(AndNotError::ValidFailed(v))),
-            (v, n) => Continue(Self { v, n }),
+            (Val1(Ok(v)), Val1(Err(_))) => Break(Ok(v)),
+            (Val1(Ok(v)), Val1(Ok(n))) => Break(Err(AndNotError::FailedCondition(v, n))),
+            (Val1(Err(v)), Val1(_)) => Break(Err(AndNotError::ValidFailed(v))),
+            (v, n) => Continue(Self {
+                primary: v,
+                negation: n,
+            }),
         }
     }
 
     fn terminate(self) -> SmResult<Self::Output, Self::Error> {
-        use Either::*;
+        use Sum2::*;
 
-        let v = match self.v {
-            Left(l) => l.terminate(),
-            Right(r) => r,
+        let v = match self.primary {
+            Val0(l) => l.terminate(),
+            Val1(r) => r,
         };
-        let n = match self.n {
-            Left(l) => l.terminate(),
-            Right(r) => r,
+        let n = match self.negation {
+            Val0(l) => l.terminate(),
+            Val1(r) => r,
         };
 
         match (v, n) {
@@ -97,19 +98,27 @@ impl<Valid: StateMachine, Not: StateMachine> StateMachine for AndNotMachine<Vali
             (Err(v), _) => Err(AndNotError::ValidFailed(v)),
         }
     }
+
+    #[cfg(feature = "execution-debug")]
+    fn inspect(&self, depth: usize) {
+        println!("{}AndNot", "  ".repeat(depth));
+        if let Sum2::Val0(ref v) = self.primary {
+            println!("{}And:", "  ".repeat(depth + 1));
+            v.inspect(depth + 2);
+        }
+        if let Sum2::Val0(ref v) = self.negation {
+            println!("{}Not:", "  ".repeat(depth + 1));
+            v.inspect(depth + 2);
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use crate::*;
 
-    #[test]
-    fn it_matches_specific_idents() {
-        type V = AndNot<Ident, FIdent<"struct">>;
+    type V = AndNot<Ident, FIdent<"struct">>;
 
-        let (id, _) = parse::<V>(quote::quote! { pub }).unwrap();
-        assert_eq!(id.to_string().as_str(), "pub");
-
-        parse::<V>(quote::quote! { struct }).unwrap_err();
-    }
+    insta_match_test!(it_matches_specific_idents, V: pub);
+    insta_match_test!(it_fails_on_negation, V: struct);
 }

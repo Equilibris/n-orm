@@ -1,0 +1,20 @@
+---
+source: syn-state-machine/src/impls/grouping.rs
+expression: "crate::parse::<(Ident, Paren<Ident>,\n        Ident)>(::quote::quote! { hello(world) hi })"
+---
+Ok(
+    (
+        (
+            Ident(
+                hello,
+            ),
+            Ident(
+                world,
+            ),
+            Ident(
+                hi,
+            ),
+        ),
+        0,
+    ),
+)

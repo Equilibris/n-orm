@@ -1,0 +1,18 @@
+---
+source: syn-state-machine/src/impls/tuple.rs
+expression: "crate::parse::<(Option<Ident>, Option<Punct>)>(::quote::quote! { < })"
+---
+Ok(
+    (
+        (
+            None,
+            Some(
+                Punct {
+                    char: '<',
+                    spacing: Alone,
+                },
+            ),
+        ),
+        0,
+    ),
+)
