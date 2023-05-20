@@ -5,10 +5,14 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[features]
+default = []
+execution-debug = []
+
 [dependencies]
 proc-macro2 = "1"
-either = "1"
 thiserror = "1"
 quote = "1"
 litrs = "0.4"
+insta = "1.29.0"
 

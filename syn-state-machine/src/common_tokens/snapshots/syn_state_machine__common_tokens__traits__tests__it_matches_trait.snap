@@ -1,0 +1,168 @@
+---
+source: syn-state-machine/src/common_tokens/traits.rs
+expression: "crate::parse::<Trait>(::quote::quote! {\n            unsafe trait HelloWorld < T > : From < T > where T : Sized\n            { type Hello : World ; }\n        })"
+---
+Ok(
+    (
+        Trait {
+            r#unsafe: true,
+            id: Ident(
+                HelloWorld,
+            ),
+            genetic_params: Some(
+                GenericParams(
+                    [
+                        TypeParam(
+                            [],
+                            TypeParam {
+                                id: Ident(
+                                    T,
+                                ),
+                                bounds: None,
+                                ty: None,
+                            },
+                        ),
+                    ],
+                ),
+            ),
+            bound: Some(
+                TypeParamBounds(
+                    [
+                        TraitBound(
+                            TraitBound {
+                                q: false,
+                                for: None,
+                                ty: TypePath {
+                                    leading: false,
+                                    segments: [
+                                        Generic {
+                                            id: Id(
+                                                Ident(
+                                                    From,
+                                                ),
+                                            ),
+                                            generic_args: GenericArgs(
+                                                [
+                                                    Type(
+                                                        NoBounds(
+                                                            TypePath(
+                                                                TypePath {
+                                                                    leading: false,
+                                                                    segments: [
+                                                                        Simple {
+                                                                            id: Id(
+                                                                                Ident(
+                                                                                    T,
+                                                                                ),
+                                                                            ),
+                                                                        },
+                                                                    ],
+                                                                },
+                                                            ),
+                                                        ),
+                                                    ),
+                                                ],
+                                            ),
+                                        },
+                                    ],
+                                },
+                            },
+                        ),
+                    ],
+                ),
+            ),
+            where_clause: Some(
+                WhereClause(
+                    [
+                        TypeBoundWhereClauseItem(
+                            TypeBoundWhereClauseItem {
+                                for: None,
+                                ty: NoBounds(
+                                    TypePath(
+                                        TypePath {
+                                            leading: false,
+                                            segments: [
+                                                Simple {
+                                                    id: Id(
+                                                        Ident(
+                                                            T,
+                                                        ),
+                                                    ),
+                                                },
+                                            ],
+                                        },
+                                    ),
+                                ),
+                                bounds: Some(
+                                    TypeParamBounds(
+                                        [
+                                            TraitBound(
+                                                TraitBound {
+                                                    q: false,
+                                                    for: None,
+                                                    ty: TypePath {
+                                                        leading: false,
+                                                        segments: [
+                                                            Simple {
+                                                                id: Id(
+                                                                    Ident(
+                                                                        Sized,
+                                                                    ),
+                                                                ),
+                                                            },
+                                                        ],
+                                                    },
+                                                },
+                                            ),
+                                        ],
+                                    ),
+                                ),
+                            },
+                        ),
+                    ],
+                ),
+            ),
+            attrs: [],
+            associate_items: [
+                TypeAlias(
+                    [],
+                    None,
+                    TypeAlias {
+                        id: Ident(
+                            Hello,
+                        ),
+                        params: None,
+                        bounds: Some(
+                            TypeParamBounds(
+                                [
+                                    TraitBound(
+                                        TraitBound {
+                                            q: false,
+                                            for: None,
+                                            ty: TypePath {
+                                                leading: false,
+                                                segments: [
+                                                    Simple {
+                                                        id: Id(
+                                                            Ident(
+                                                                World,
+                                                            ),
+                                                        ),
+                                                    },
+                                                ],
+                                            },
+                                        },
+                                    ),
+                                ],
+                            ),
+                        ),
+                        pre_where_clause: None,
+                        ty: None,
+                        post_where_clause: None,
+                    },
+                ),
+            ],
+        },
+        0,
+    ),
+)

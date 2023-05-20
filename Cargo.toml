@@ -13,8 +13,7 @@ members = [
     "collection/collection-macro",
     "collection",
     "profile",
-    "syn-state-machine",
-    "syn-state-machine/syn-state-machine-macro",
+    "syn-state-machine"
 ]
 
 [dependencies]

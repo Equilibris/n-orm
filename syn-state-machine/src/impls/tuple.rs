@@ -119,145 +119,6 @@ impl<A: StateMachine, B: StateMachine> StateMachine for MTuple<A, B> {
     }
 }
 
-#[cfg(disable)]
-mod tuple3 {
-    use crate::*;
-
-    impl<A: Parsable, B: Parsable, C: Parsable> Parsable for (A, B, C) {
-        type StateMachine = M3Tuple<A::StateMachine, B::StateMachine, C::StateMachine>;
-    }
-    pub enum M3Tuple<A: StateMachine, B: StateMachine, C: StateMachine> {
-        A(Vec<TokenTree>, A),
-        B(A::Output, Vec<TokenTree>, B),
-        C(A::Output, B::Output, Vec<TokenTree>, C),
-    }
-
-    #[derive(Clone, thiserror::Error, Debug)]
-    pub enum TupleError<A: std::error::Error, B: std::error::Error, C: std::error::Error> {
-        #[error("1: ({})", .0)]
-        A(A),
-        #[error("2: ({})", .0)]
-        B(B),
-        #[error("3: ({})", .0)]
-        C(C),
-
-        #[error("Internal token content was of length {} but requested {}", .0, .1)]
-        InvalidLength(usize, usize),
-    }
-
-    impl<A: StateMachine, B: StateMachine, C: StateMachine> Default for M3Tuple<A, B, C> {
-        fn default() -> Self {
-            Self::A(Vec::new(), A::default())
-        }
-    }
-    impl<A: StateMachine, B: StateMachine, C: StateMachine> M3Tuple<A, B, C> {
-        fn process_stepup(
-            mut self,
-            mut rl: usize,
-        ) -> ControlFlow<
-            SmResult<<Self as StateMachine>::Output, <Self as StateMachine>::Error>,
-            Self,
-        > {
-            use ControlFlow::*;
-
-            match self {
-                M3Tuple::C(_, _, ref vs, _) | M3Tuple::B(_, ref vs, _) => {
-                    if rl > vs.len() {
-                        return Break(Err(TupleError::InvalidLength(rl, vs.len())));
-                    }
-                }
-
-                _ => unreachable!(),
-            }
-            while rl > 0 {
-                match self {
-                    M3Tuple::B(a, vs, machine) => match machine.drive(&vs[vs.len() - rl]) {
-                        Continue(c) => self = M3Tuple::B(a, vs, c),
-                        Break(Ok((ok, inc))) => {
-                            rl += inc;
-                            self = M3Tuple::C(a, ok, vs, Default::default());
-                        }
-                        Break(Err(e)) => return Break(Err(TupleError::B(e))),
-                    },
-                    M3Tuple::C(a, b, vs, machine) => match machine.drive(&vs[vs.len() - rl]) {
-                        Continue(c) => self = M3Tuple::C(a, b, vs, c),
-                        Break(Ok((zz, inc))) => return Break(Ok(((a, b, zz), inc + rl - 1))),
-                        Break(Err(e)) => return Break(Err(TupleError::C(e))),
-                    },
-                    _ => unreachable!(),
-                }
-                rl -= 1;
-            }
-
-            Continue(self)
-        }
-    }
-
-    impl<A: StateMachine, B: StateMachine, C: StateMachine> StateMachine for M3Tuple<A, B, C> {
-        type Output = (A::Output, B::Output, C::Output);
-        type Error = TupleError<A::Error, B::Error, C::Error>;
-
-        fn drive(self, val: &TokenTree) -> ControlFlow<SmResult<Self::Output, Self::Error>, Self> {
-            use ControlFlow::*;
-
-            match self {
-                Self::A(mut vs, machine) => match machine.drive(val) {
-                    Break(Ok((a, rl))) => {
-                        vs.push(val.clone());
-                        Self::B(a, vs, Default::default()).process_stepup(rl)
-                    }
-                    Break(Err(e)) => Break(Err(TupleError::A(e))),
-                    Continue(v) => Continue({
-                        vs.push(val.clone());
-                        Self::A(vs, v)
-                    }),
-                },
-                Self::B(a, vs, machine) => match machine.drive(val) {
-                    Break(Ok((b, rl))) => Self::C(a, b, vs, Default::default()).process_stepup(rl),
-                    Break(Err(e)) => Break(Err(TupleError::B(e))),
-                    Continue(machine) => Continue(Self::B(a, vs, machine)),
-                },
-                Self::C(a, b, vs, machine) => match machine.drive(val) {
-                    Break(Ok((zz, rl))) => Break(Ok(((a, b, zz), rl))),
-                    Break(Err(e)) => Break(Err(TupleError::C(e))),
-                    Continue(machine) => Continue(Self::C(a, b, vs, machine)),
-                },
-            }
-        }
-
-        fn terminate(mut self) -> SmResult<Self::Output, Self::Error> {
-            loop {
-                let (a, rl) = match self {
-                    M3Tuple::A(vs, machine) => match machine.terminate() {
-                        Ok((a, rl)) => (Self::B(a, vs, Default::default()), rl),
-                        Err(e) => return Err(TupleError::A(e)),
-                    },
-                    M3Tuple::B(a, vs, machine) => match machine.terminate() {
-                        Ok((b, rl)) => (Self::C(a, b, vs, Default::default()), rl),
-                        Err(e) => return Err(TupleError::B(e)),
-                    },
-                    M3Tuple::C(a, b, _, machine) => match machine.terminate() {
-                        Ok((zz, rl)) => return Ok(((a, b, zz), rl)),
-                        Err(e) => return Err(TupleError::C(e)),
-                    },
-                };
-                match a.process_stepup(rl) {
-                    ControlFlow::Continue(s) => self = s,
-                    ControlFlow::Break(a) => return a,
-                }
-            }
-        }
-
-        #[cfg(feature = "execution-debug")]
-        fn inspect(&self, depth: usize) {
-            match self {
-                MTuple::A(_, ref a) => a.inspect(depth),
-                MTuple::B(_, ref b) => b.inspect(depth),
-            }
-        }
-    }
-}
-
 mod higher_order_tuple_2 {
     use crate::*;
 
@@ -510,42 +371,6 @@ mod higher_order_tuple_2 {
     );
 }
 
-#[cfg(disable)]
-mod higher_order_tuple {
-    use crate::*;
-    macro_rules! impl_parse {
-        ($($i:ident)+; $($t:ident)+) => {
-            impl<$($t: Parsable,)+ ZZ: Parsable> MappedParse for (ZZ, $($t,)+) {
-                type Source = (ZZ, ($($t),+));
-
-                type Output = (SmOut<ZZ>, $(SmOut<$t>,)+);
-                type Error = SmErr<Self::Source>;
-
-                fn map((zz, ($($i,)+)): SmOut<<Self as MappedParse>::Source>) -> Result<Self::Output, Self::Error> {
-                    Ok((zz, $($i,)+))
-                }
-                fn map_err(src: SmErr<<Self as MappedParse>::Source>) -> Self::Error {
-                    src
-                }
-            }
-        };
-    }
-    // impl_parse!(a b; A B);
-    // impl_parse!(a b c; A B C);
-    // impl_parse!(a b c d; A B C D);
-    // impl_parse!(a b c d e; A B C D E);
-    // impl_parse!(a b c d e f; A B C D E F);
-    // impl_parse!(a b c d e f g; A B C D E F G);
-    // impl_parse!(a b c d e f g h; A B C D E F G H);
-    // impl_parse!(a b c d e f g h i; A B C D E F G H I);
-    // impl_parse!(a b c d e f g h i j; A B C D E F G H I J);
-    // impl_parse!(a b c d e f g h i j k; A B C D E F G H I J K);
-    // impl_parse!(a b c d e f g h i j k l; A B C D E F G H I J K L);
-    // impl_parse!(a b c d e f g h i j k l m; A B C D E F G H I J K L M);
-    // impl_parse!(a b c d e f g h i j k l m n; A B C D E F G H I J K L M N);
-    // impl_parse!(a b c d e f g h i j k l m n o; A B C D E F G H I J K L M N O);
-}
-
 #[cfg(test)]
 mod tests {
     use crate::*;
@@ -557,7 +382,6 @@ mod tests {
         type V<T> = (T, T, T, T, T, T, T, T, T, T, T);
 
         dbg!(size_of::<<V<()> as Parsable>::StateMachine>());
-        dbg!(size_of::<<V<V<V<V<V<V<()>>>>>> as Parsable>::StateMachine>());
     }
 
     insta_match_test!(it_matches_2_tuple, (Ident, FIdent<"world">) : hello world);

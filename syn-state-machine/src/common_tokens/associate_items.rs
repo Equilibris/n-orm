@@ -17,7 +17,7 @@ impl<T: Parsable> MappedParse for AssociateItem<T> {
             MacroInvocationSemi,
             (
                 Option<Visibility>,
-                Sum3<TypeAlias, ConstantItem, Function<T>>,
+                Sum3<MBox<TypeAlias>, MBox<ConstantItem>, MBox<Function<T>>>,
             ),
         >,
     >;
@@ -77,4 +77,10 @@ where
 mod tests {
     use super::*;
     use crate::insta_match_test;
+
+    #[test]
+    pub fn sm_size_prune() {
+        dbg!(std::mem::size_of::<<AssociateItem as Parsable>::StateMachine>());
+        dbg!(std::mem::size_of::<<Function as Parsable>::StateMachine>());
+    }
 }

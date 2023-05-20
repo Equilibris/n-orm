@@ -58,5 +58,5 @@ impl<T: Parsable> MappedParse for InnerAttr<T> {
 mod tests {
     use super::*;
 
-    insta_match_test!(it_matches_simple_function, OuterAttr<(Ident,Paren<Ident>)>: #[hello(world)]);
+    insta_match_test!(it_matches_simple_function, OuterAttr<(Ident, Paren<Ident>)>: #[hello(world)]);
 }

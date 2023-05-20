@@ -1,8 +1,6 @@
 use super::*;
 use crate::*;
 
-use Sum2::*;
-
 #[derive(Debug)]
 pub enum Type {
     NoBounds(TypeNoBounds),
@@ -10,7 +8,7 @@ pub enum Type {
     TraitObject(TraitObjectType),
 }
 impl MappedParse for Type {
-    type Source = Sum2<TypeNoBounds, Sum2<ImplTraitType, TraitObjectType>>;
+    type Source = Sum3<TypeNoBounds, MBox<ImplTraitType>, MBox<TraitObjectType>>;
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -19,9 +17,9 @@ impl MappedParse for Type {
         src: SmOut<Self::Source>,
     ) -> Result<<Self as MappedParse>::Output, <Self as MappedParse>::Error> {
         Ok(match src {
-            Val0(a) => Self::NoBounds(a),
-            Val1(Val0(a)) => Self::ImplTrait(a),
-            Val1(Val1(a)) => Self::TraitObject(a),
+            Sum3::Val0(a) => Self::NoBounds(a),
+            Sum3::Val1(a) => Self::ImplTrait(a),
+            Sum3::Val2(a) => Self::TraitObject(a),
         })
     }
 
@@ -33,20 +31,20 @@ impl MappedParse for Type {
 #[derive(Debug, thiserror::Error)]
 #[error("Expected type")]
 pub struct TypeNoBoundsError {
-    parenthesized: Box<SmErr<ParenthesizedType>>,
-    impl_trait_one_bound: SmErr<ImplTraitTypeOneBound>,
-    trait_object_one_bound: SmErr<TraitObjectTypeOneBound>,
-    type_path: SmErr<TypePath>,
-    tuple: SmErr<TupleType>,
-    never: SmErr<NeverType>,
-    raw_pointer: Box<SmErr<RawPointerType>>,
-    reference: Box<SmErr<ReferenceType>>,
-    array: Box<SmErr<ArrayType>>,
-    slice: Box<SmErr<SliceType>>,
-    inferred: SmErr<InferredType>,
-    qualified_path: Box<SmErr<QualifiedPathInType>>,
-    bare_function: Box<SmErr<BareFunctionType>>,
-    macro_invocation: SmErr<MacroInvocation>,
+    pub parenthesized: Box<SmErr<ParenthesizedType>>,
+    pub impl_trait_one_bound: SmErr<ImplTraitTypeOneBound>,
+    pub trait_object_one_bound: SmErr<TraitObjectTypeOneBound>,
+    pub type_path: SmErr<TypePath>,
+    pub tuple: SmErr<TupleType>,
+    pub never: SmErr<NeverType>,
+    pub raw_pointer: Box<SmErr<RawPointerType>>,
+    pub reference: Box<SmErr<ReferenceType>>,
+    pub array: Box<SmErr<ArrayType>>,
+    pub slice: Box<SmErr<SliceType>>,
+    pub inferred: SmErr<InferredType>,
+    pub qualified_path: Box<SmErr<QualifiedPathInType>>,
+    pub bare_function: Box<SmErr<BareFunctionType>>,
+    pub macro_invocation: SmErr<MacroInvocation>,
 }
 
 #[derive(Debug)]
@@ -273,9 +271,9 @@ impl MappedParse for TupleType {
         src: SmOut<Self::Source>,
     ) -> Result<<Self as MappedParse>::Output, <Self as MappedParse>::Error> {
         Ok(Self(match src {
-            Val0(a) => a.0,
-            Val1(Some(a)) => vec![a.0],
-            Val1(None) => Vec::new(),
+            Sum2::Val0(a) => a.0,
+            Sum2::Val1(Some(a)) => vec![a.0],
+            Sum2::Val1(None) => Vec::new(),
         }))
     }
 
@@ -289,7 +287,11 @@ mod tests {
     use quote::quote;
 
     use super::*;
-    use crate::*;
+
+    #[test]
+    pub fn sm_size_prune() {
+        dbg!(std::mem::size_of::<<Type as Parsable>::StateMachine>());
+    }
 
     // The primary issue for type matching is stack-overflows. This is me trying to avoid this.
     #[test]

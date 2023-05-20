@@ -22,8 +22,7 @@ impl<T: StateMachine> StateMachine for MBoxM<T> {
 
     #[cfg(feature = "execution-debug")]
     fn inspect(&self, depth: usize) {
-        println!("{}MBox:", "  ".repeat(depth));
-        self.0.inspect(depth + 1);
+        self.0.inspect(depth);
     }
 }
 
