@@ -3,7 +3,7 @@ use std::fmt::Debug;
 use super::*;
 use crate::*;
 
-pub enum Struct<T: Parsable = Tokens> {
+pub enum Struct<T: Parsable> {
     Unit(UnitStruct),
     Block(BlockStruct<T>),
     Tuple(TupleStruct<T>),
@@ -41,7 +41,7 @@ where
     }
 }
 
-pub enum StructStruct<T: Parsable = Tokens> {
+pub enum StructStruct<T: Parsable> {
     Unit(UnitStruct),
     Block(BlockStruct<T>),
 }
@@ -95,11 +95,11 @@ impl MappedParse for UnitStruct {
     }
 }
 
-pub struct BlockStruct<T: Parsable = Tokens> {
+pub struct BlockStruct<T: Parsable> {
     pub id: Ident,
-    pub params: Option<GenericParams>,
+    pub params: Option<GenericParams<T>>,
     pub fields: StructFields<T>,
-    pub where_clause: Option<WhereClause>,
+    pub where_clause: Option<WhereClause<T>>,
 }
 impl<T: Parsable> Debug for BlockStruct<T>
 where
@@ -118,8 +118,8 @@ impl<T: Parsable> MappedParse for BlockStruct<T> {
     type Source = (
         KwStruct,
         Identifier,
-        Option<GenericParams>,
-        Option<WhereClause>,
+        Option<GenericParams<T>>,
+        Option<WhereClause<T>>,
         Brace<StructFields<T>>,
     );
 
@@ -132,7 +132,7 @@ impl<T: Parsable> MappedParse for BlockStruct<T> {
         Ok(Self {
             id: src.1,
             params: src.2,
-            fields: src.4,
+            fields: src.4 .0,
             where_clause: src.3,
         })
     }
@@ -142,11 +142,11 @@ impl<T: Parsable> MappedParse for BlockStruct<T> {
     }
 }
 
-pub struct TupleStruct<T: Parsable = Tokens> {
+pub struct TupleStruct<T: Parsable> {
     pub id: Ident,
-    pub params: Option<GenericParams>,
+    pub params: Option<GenericParams<T>>,
     pub fields: TupleFields<T>,
-    pub where_clause: Option<WhereClause>,
+    pub where_clause: Option<WhereClause<T>>,
 }
 impl<T: Parsable> Debug for TupleStruct<T>
 where
@@ -165,9 +165,9 @@ impl<T: Parsable> MappedParse for TupleStruct<T> {
     type Source = (
         KwStruct,
         Identifier,
-        Option<GenericParams>,
+        Option<GenericParams<T>>,
         Paren<TupleFields<T>>,
-        Option<WhereClause>,
+        Option<WhereClause<T>>,
         Semi,
     );
 
@@ -180,7 +180,7 @@ impl<T: Parsable> MappedParse for TupleStruct<T> {
         Ok(Self {
             id: src.1,
             params: src.2,
-            fields: src.3,
+            fields: src.3 .0,
             where_clause: src.4,
         })
     }
@@ -194,14 +194,14 @@ impl<T: Parsable> MappedParse for TupleStruct<T> {
 pub type TupleFields<T> = InterlaceTrail<TupleField<T>, Comma>;
 pub type StructFields<T> = InterlaceTrail<StructField<T>, Comma>;
 
-pub struct StructField<T: Parsable = Tokens> {
+pub struct StructField<T: Parsable> {
     pub attr: Attrs<T>,
     pub vis: Option<Visibility>,
     pub id: Ident,
-    pub ty: Type,
+    pub ty: Type<T>,
 }
 impl<T: Parsable> MappedParse for StructField<T> {
-    type Source = (Attrs<T>, Option<Visibility>, Identifier, Colon, Type);
+    type Source = (Attrs<T>, Option<Visibility>, Identifier, Colon, Type<T>);
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -235,13 +235,13 @@ where
     }
 }
 
-pub struct TupleField<T: Parsable = Tokens> {
+pub struct TupleField<T: Parsable> {
     pub attr: Attrs<T>,
     pub vis: Option<Visibility>,
-    pub ty: Type,
+    pub ty: Type<T>,
 }
 impl<T: Parsable> MappedParse for TupleField<T> {
-    type Source = (Attrs<T>, Option<Visibility>, Type);
+    type Source = (Attrs<T>, Option<Visibility>, Type<T>);
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -279,7 +279,7 @@ mod tests {
     use super::*;
     use crate::insta_match_test;
 
-    insta_match_test!(it_matches_unit, Struct: struct Unit;);
-    insta_match_test!(it_matches_tuple, Struct: struct Point<T> (T,T) where T: std::ops::Add<Other = T>;);
-    insta_match_test!(it_matches_struct, Struct: struct Point<T> where T: Hi { pub v0: T, pub v1: T });
+    insta_match_test!(it_matches_unit, Struct<Infallible>: struct Unit;);
+    insta_match_test!(it_matches_tuple, Struct<Infallible>: struct Point<T> (T,T) where T: std::ops::Add<Other = T>;);
+    insta_match_test!(it_matches_struct, Struct<Infallible>: struct Point<T> where T: Hi { pub v0: T, pub v1: T });
 }

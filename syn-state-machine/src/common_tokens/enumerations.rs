@@ -2,10 +2,10 @@ use super::*;
 use crate::*;
 use std::fmt::Debug;
 
-pub struct Enumeration<T: Parsable = Tokens> {
+pub struct Enumeration<T: Parsable> {
     pub id: Ident,
-    pub generic_params: Option<GenericParams>,
-    pub where_clause: Option<WhereClause>,
+    pub generic_params: Option<GenericParams<T>>,
+    pub where_clause: Option<WhereClause<T>>,
 
     pub items: EnumItems<T>,
 }
@@ -27,8 +27,8 @@ impl<T: Parsable> MappedParse for Enumeration<T> {
     type Source = (
         KwEnum,
         Identifier,
-        Option<GenericParams>,
-        Option<WhereClause>,
+        Option<GenericParams<T>>,
+        Option<WhereClause<T>>,
         Brace<EnumItems<T>>,
     );
 
@@ -42,7 +42,7 @@ impl<T: Parsable> MappedParse for Enumeration<T> {
             id: src.1,
             generic_params: src.2,
             where_clause: src.3,
-            items: src.4,
+            items: src.4 .0,
         })
     }
 
@@ -51,9 +51,9 @@ impl<T: Parsable> MappedParse for Enumeration<T> {
     }
 }
 
-pub type EnumItems<T = Tokens> = InterlaceTrail<EnumItem<T>, Comma>;
+pub type EnumItems<T> = InterlaceTrail<EnumItem<T>, Comma>;
 
-pub enum EnumItem<T: Parsable = Tokens> {
+pub enum EnumItem<T: Parsable> {
     Unit {
         id: Ident,
 
@@ -176,7 +176,7 @@ impl<T: Parsable> MappedParse for EnumItem<T> {
     }
 }
 
-pub struct EnumItemStruct<T: Parsable = Tokens>(pub StructFields<T>);
+pub struct EnumItemStruct<T: Parsable>(pub StructFields<T>);
 impl<T: Parsable> Debug for EnumItemStruct<T>
 where
     SmOut<T>: Debug,
@@ -194,7 +194,7 @@ impl<T: Parsable> MappedParse for EnumItemStruct<T> {
     fn map(
         src: SmOut<Self::Source>,
     ) -> Result<<Self as MappedParse>::Output, <Self as MappedParse>::Error> {
-        Ok(Self(src))
+        Ok(Self(src.0))
     }
 
     fn map_err(src: SmErr<Self::Source>) -> <Self as MappedParse>::Error {
@@ -202,7 +202,7 @@ impl<T: Parsable> MappedParse for EnumItemStruct<T> {
     }
 }
 
-pub struct EnumItemTuple<T: Parsable = Tokens>(pub TupleFields<T>);
+pub struct EnumItemTuple<T: Parsable>(pub TupleFields<T>);
 impl<T: Parsable> Debug for EnumItemTuple<T>
 where
     SmOut<T>: Debug,
@@ -220,7 +220,7 @@ impl<T: Parsable> MappedParse for EnumItemTuple<T> {
     fn map(
         src: SmOut<Self::Source>,
     ) -> Result<<Self as MappedParse>::Output, <Self as MappedParse>::Error> {
-        Ok(Self(src))
+        Ok(Self(src.0))
     }
 
     fn map_err(src: SmErr<Self::Source>) -> <Self as MappedParse>::Error {
@@ -252,12 +252,12 @@ mod tests {
     use super::*;
     use crate::insta_match_test;
 
-    insta_match_test!(it_matches_enum_item_unit, EnumItem: Block);
-    insta_match_test!(it_matches_enum_item_struct, EnumItem: Block { hello : World });
-    insta_match_test!(it_matches_enum_item_tuple, EnumItem: Block(World));
+    insta_match_test!(it_matches_enum_item_unit, EnumItem<Infallible>: Block);
+    insta_match_test!(it_matches_enum_item_struct, EnumItem<Infallible>: Block { hello : World });
+    insta_match_test!(it_matches_enum_item_tuple, EnumItem<Infallible>: Block(World));
 
     insta_match_test!(
-        it_matches_enum, Enumeration :
+        it_matches_enum, Enumeration <Infallible>:
         enum HelloWorld <F,T> where F: Into<T> {
             Unit,
             From(F),

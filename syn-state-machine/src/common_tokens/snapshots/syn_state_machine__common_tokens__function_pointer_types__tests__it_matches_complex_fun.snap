@@ -1,6 +1,6 @@
 ---
 source: syn-state-machine/src/common_tokens/function_pointer_types.rs
-expression: "crate::parse::<BareFunctionType>(::quote::quote! {\n            for < 'a > unsafe extern \"C\" fn(Hello, World, ...) -> i64\n        })"
+expression: "crate::parse::<BareFunctionType<Infallible,\n        PBox<TypeNoBounds<Infallible>>>>(::quote::quote! {\n            for < 'a > unsafe extern \"C\" fn(Hello, World, ...) -> i64\n        })"
 ---
 Ok(
     (
@@ -41,40 +41,36 @@ Ok(
                         [
                             MaybeNamedParam {
                                 id: None,
-                                ty: NoBounds(
-                                    TypePath(
-                                        TypePath {
-                                            leading: false,
-                                            segments: [
-                                                Simple {
-                                                    id: Id(
-                                                        Ident(
-                                                            Hello,
-                                                        ),
+                                ty: TypePath(
+                                    TypePath {
+                                        leading: false,
+                                        segments: [
+                                            Simple {
+                                                id: Id(
+                                                    Ident(
+                                                        Hello,
                                                     ),
-                                                },
-                                            ],
-                                        },
-                                    ),
+                                                ),
+                                            },
+                                        ],
+                                    },
                                 ),
                             },
                             MaybeNamedParam {
                                 id: None,
-                                ty: NoBounds(
-                                    TypePath(
-                                        TypePath {
-                                            leading: false,
-                                            segments: [
-                                                Simple {
-                                                    id: Id(
-                                                        Ident(
-                                                            World,
-                                                        ),
+                                ty: TypePath(
+                                    TypePath {
+                                        leading: false,
+                                        segments: [
+                                            Simple {
+                                                id: Id(
+                                                    Ident(
+                                                        World,
                                                     ),
-                                                },
-                                            ],
-                                        },
-                                    ),
+                                                ),
+                                            },
+                                        ],
+                                    },
                                 ),
                             },
                         ],

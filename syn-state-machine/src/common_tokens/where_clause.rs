@@ -1,10 +1,18 @@
 use super::*;
 use crate::*;
+use std::fmt::Debug;
 
-#[derive(Debug)]
-pub struct WhereClause(pub Vec<WhereClauseItem>);
-impl MappedParse for WhereClause {
-    type Source = (KwWhere, Interlace<WhereClauseItem, Comma>);
+pub struct WhereClause<T: Parsable>(pub Vec<WhereClauseItem<T>>);
+impl<T: Parsable> Debug for WhereClause<T>
+where
+    SmOut<T>: Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("WhereClause").field(&self.0).finish()
+    }
+}
+impl<T: Parsable> MappedParse for WhereClause<T> {
+    type Source = (KwWhere, Interlace<WhereClauseItem<T>, Comma>);
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -20,13 +28,29 @@ impl MappedParse for WhereClause {
     }
 }
 
-#[derive(Debug)]
-pub enum WhereClauseItem {
+pub enum WhereClauseItem<T: Parsable> {
     LifetimeWhereClauseItem(LifetimeWhereClauseItem),
-    TypeBoundWhereClauseItem(TypeBoundWhereClauseItem),
+    TypeBoundWhereClauseItem(TypeBoundWhereClauseItem<T>),
 }
-impl MappedParse for WhereClauseItem {
-    type Source = Sum2<LifetimeWhereClauseItem, TypeBoundWhereClauseItem>;
+impl<T: Parsable> Debug for WhereClauseItem<T>
+where
+    SmOut<T>: Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::LifetimeWhereClauseItem(arg0) => f
+                .debug_tuple("LifetimeWhereClauseItem")
+                .field(arg0)
+                .finish(),
+            Self::TypeBoundWhereClauseItem(arg0) => f
+                .debug_tuple("TypeBoundWhereClauseItem")
+                .field(arg0)
+                .finish(),
+        }
+    }
+}
+impl<T: Parsable> MappedParse for WhereClauseItem<T> {
+    type Source = Sum2<LifetimeWhereClauseItem, TypeBoundWhereClauseItem<T>>;
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -70,14 +94,30 @@ impl MappedParse for LifetimeWhereClauseItem {
     }
 }
 
-#[derive(Debug)]
-pub struct TypeBoundWhereClauseItem {
-    pub r#for: Option<ForLifetimes>,
-    pub ty: Type,
-    pub bounds: Option<TypeParamBounds>,
+pub struct TypeBoundWhereClauseItem<T: Parsable> {
+    pub r#for: Option<ForLifetimes<T>>,
+    pub ty: Type<T>,
+    pub bounds: Option<TypeParamBounds<T>>,
 }
-impl MappedParse for TypeBoundWhereClauseItem {
-    type Source = (Option<ForLifetimes>, Type, Colon, Option<TypeParamBounds>);
+impl<T: Parsable> Debug for TypeBoundWhereClauseItem<T>
+where
+    SmOut<T>: Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("TypeBoundWhereClauseItem")
+            .field("for", &self.r#for)
+            .field("ty", &self.ty)
+            .field("bounds", &self.bounds)
+            .finish()
+    }
+}
+impl<T: Parsable> MappedParse for TypeBoundWhereClauseItem<T> {
+    type Source = (
+        Option<ForLifetimes<T>>,
+        Type<T>,
+        Colon,
+        Option<TypeParamBounds<T>>,
+    );
 
     type Output = Self;
     type Error = SmErr<Self::Source>;

@@ -8,10 +8,17 @@ use Sum2::*;
 pub mod range_patterns;
 pub use range_patterns::*;
 
-#[derive(Debug)]
-pub struct Pattern(pub Vec<PatternNoTopAlt>);
-impl MappedParse for Pattern {
-    type Source = (Option<Pipe>, Interlace<PatternNoTopAlt, Pipe>);
+pub struct Pattern<T: Parsable>(pub Vec<PatternNoTopAlt<T>>);
+impl<T: Parsable> Debug for Pattern<T>
+where
+    SmOut<T>: Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("Pattern").field(&self.0).finish()
+    }
+}
+impl<T: Parsable> MappedParse for Pattern<T> {
+    type Source = (Option<Pipe>, Interlace<PatternNoTopAlt<T>, Pipe>);
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -27,13 +34,25 @@ impl MappedParse for Pattern {
     }
 }
 
-#[derive(Debug)]
-pub enum PatternNoTopAlt {
-    PatternWithoutRange(PatternWithoutRange),
-    RangePattern(RangePattern),
+pub enum PatternNoTopAlt<T: Parsable> {
+    PatternWithoutRange(PatternWithoutRange<T>),
+    RangePattern(RangePattern<T>),
 }
-impl MappedParse for PatternNoTopAlt {
-    type Source = Sum2<PatternWithoutRange, RangePattern>;
+impl<T: Parsable> Debug for PatternNoTopAlt<T>
+where
+    SmOut<T>: Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::PatternWithoutRange(arg0) => {
+                f.debug_tuple("PatternWithoutRange").field(arg0).finish()
+            }
+            Self::RangePattern(arg0) => f.debug_tuple("RangePattern").field(arg0).finish(),
+        }
+    }
+}
+impl<T: Parsable> MappedParse for PatternNoTopAlt<T> {
+    type Source = Sum2<PatternWithoutRange<T>, RangePattern<T>>;
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -52,58 +71,100 @@ impl MappedParse for PatternNoTopAlt {
     }
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(thiserror::Error)]
 #[error("Failed to match pattern")]
-pub struct PatternError {
+pub struct PatternError<T: Parsable> {
     pub literal_pattern: SmErr<LiteralPattern>,
-    pub identifier_pattern: Box<SmErr<IdentifierPattern>>,
+    pub identifier_pattern: Box<SmErr<IdentifierPattern<T>>>,
     pub wildcard_pattern: SmErr<WildcardPattern>,
     pub rest_pattern: SmErr<RestPattern>,
-    pub reference_pattern: Box<SmErr<ReferencePattern>>,
-    pub struct_pattern: SmErr<StructPattern>,
-    pub tuple_struct_pattern: SmErr<TupleStructPattern>,
-    pub tuple_pattern: SmErr<TuplePattern>,
-    pub grouped_pattern: Box<SmErr<Paren<Pattern>>>,
-    pub slice_pattern: SmErr<SlicePattern>,
-    pub path_pattern: SmErr<PathPattern>,
+    pub reference_pattern: Box<SmErr<ReferencePattern<T>>>,
+    pub struct_pattern: SmErr<StructPattern<T>>,
+    pub tuple_struct_pattern: SmErr<TupleStructPattern<T>>,
+    pub tuple_pattern: SmErr<TuplePattern<T>>,
+    pub grouped_pattern: Box<SmErr<Paren<Pattern<T>>>>,
+    pub slice_pattern: SmErr<SlicePattern<T>>,
+    pub path_pattern: SmErr<PathPattern<T>>,
     pub macro_invocation: SmErr<MacroInvocation>,
 }
+impl<T: Parsable> Debug for PatternError<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("PatternError")
+            .field("literal_pattern", &self.literal_pattern)
+            .field("identifier_pattern", &self.identifier_pattern)
+            .field("wildcard_pattern", &self.wildcard_pattern)
+            .field("rest_pattern", &self.rest_pattern)
+            .field("reference_pattern", &self.reference_pattern)
+            .field("struct_pattern", &self.struct_pattern)
+            .field("tuple_struct_pattern", &self.tuple_struct_pattern)
+            .field("tuple_pattern", &self.tuple_pattern)
+            .field("grouped_pattern", &self.grouped_pattern)
+            .field("slice_pattern", &self.slice_pattern)
+            .field("path_pattern", &self.path_pattern)
+            .field("macro_invocation", &self.macro_invocation)
+            .finish()
+    }
+}
 
-#[derive(Debug)]
-pub enum PatternWithoutRange {
+pub enum PatternWithoutRange<T: Parsable> {
     LiteralPattern(LiteralPattern),
-    IdentifierPattern(Box<IdentifierPattern>),
+    IdentifierPattern(Box<IdentifierPattern<T>>),
     WildcardPattern(WildcardPattern),
     RestPattern(RestPattern),
-    ReferencePattern(Box<ReferencePattern>),
-    StructPattern(StructPattern),
-    TupleStructPattern(TupleStructPattern),
-    TuplePattern(TuplePattern),
-    GroupedPattern(Box<Pattern>),
-    SlicePattern(SlicePattern),
-    PathPattern(PathPattern),
+    ReferencePattern(Box<ReferencePattern<T>>),
+    StructPattern(StructPattern<T>),
+    TupleStructPattern(TupleStructPattern<T>),
+    TuplePattern(TuplePattern<T>),
+    GroupedPattern(Box<Pattern<T>>),
+    SlicePattern(SlicePattern<T>),
+    PathPattern(PathPattern<T>),
     MacroInvocation(MacroInvocation),
 }
-impl MappedParse for PatternWithoutRange {
+impl<T: Parsable> Debug for PatternWithoutRange<T>
+where
+    SmOut<T>: Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::LiteralPattern(arg0) => f.debug_tuple("LiteralPattern").field(arg0).finish(),
+            Self::IdentifierPattern(arg0) => {
+                f.debug_tuple("IdentifierPattern").field(arg0).finish()
+            }
+            Self::WildcardPattern(arg0) => f.debug_tuple("WildcardPattern").field(arg0).finish(),
+            Self::RestPattern(arg0) => f.debug_tuple("RestPattern").field(arg0).finish(),
+            Self::ReferencePattern(arg0) => f.debug_tuple("ReferencePattern").field(arg0).finish(),
+            Self::StructPattern(arg0) => f.debug_tuple("StructPattern").field(arg0).finish(),
+            Self::TupleStructPattern(arg0) => {
+                f.debug_tuple("TupleStructPattern").field(arg0).finish()
+            }
+            Self::TuplePattern(arg0) => f.debug_tuple("TuplePattern").field(arg0).finish(),
+            Self::GroupedPattern(arg0) => f.debug_tuple("GroupedPattern").field(arg0).finish(),
+            Self::SlicePattern(arg0) => f.debug_tuple("SlicePattern").field(arg0).finish(),
+            Self::PathPattern(arg0) => f.debug_tuple("PathPattern").field(arg0).finish(),
+            Self::MacroInvocation(arg0) => f.debug_tuple("MacroInvocation").field(arg0).finish(),
+        }
+    }
+}
+impl<T: Parsable> MappedParse for PatternWithoutRange<T> {
     type Source = PBox<
         Sum12<
             LiteralPattern,
-            IdentifierPattern,
+            IdentifierPattern<T>,
             WildcardPattern,
             RestPattern,
-            ReferencePattern,
-            StructPattern,
-            TupleStructPattern,
-            TuplePattern,
-            Paren<Pattern>,
-            SlicePattern,
-            PathExpression,
+            ReferencePattern<T>,
+            StructPattern<T>,
+            TupleStructPattern<T>,
+            TuplePattern<T>,
+            Paren<Pattern<T>>,
+            SlicePattern<T>,
+            PathExpression<T>,
             MacroInvocation,
         >,
     >;
 
     type Output = Self;
-    type Error = PatternError;
+    type Error = PatternError<T>;
 
     fn map(
         src: SmOut<Self::Source>,
@@ -117,7 +178,7 @@ impl MappedParse for PatternWithoutRange {
             Sum12::Val5(a) => Self::StructPattern(a),
             Sum12::Val6(a) => Self::TupleStructPattern(a),
             Sum12::Val7(a) => Self::TuplePattern(a),
-            Sum12::Val8(a) => Self::GroupedPattern(Box::new(a)),
+            Sum12::Val8(a) => Self::GroupedPattern(Box::new(a.0)),
             Sum12::Val9(a) => Self::SlicePattern(a),
             Sum12::Val10(a) => Self::PathPattern(a),
             Sum12::Val11(a) => Self::MacroInvocation(a),
@@ -159,12 +220,19 @@ impl MappedParse for PatternWithoutRange {
     }
 }
 
-pub type PathPattern = PathExpression;
+pub type PathPattern<T> = PathExpression<T>;
 
-#[derive(Debug)]
-pub struct SlicePattern(pub Vec<Pattern>);
-impl MappedParse for SlicePattern {
-    type Source = Bracket<Option<SlicePatternItems>>;
+pub struct SlicePattern<T: Parsable>(pub Vec<Pattern<T>>);
+impl<T: Parsable> Debug for SlicePattern<T>
+where
+    SmOut<T>: Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("SlicePattern").field(&self.0).finish()
+    }
+}
+impl<T: Parsable> MappedParse for SlicePattern<T> {
+    type Source = Bracket<Option<SlicePatternItems<T>>>;
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -172,7 +240,7 @@ impl MappedParse for SlicePattern {
     fn map(
         src: SmOut<Self::Source>,
     ) -> Result<<Self as MappedParse>::Output, <Self as MappedParse>::Error> {
-        Ok(Self(src.map(|v| v.0).unwrap_or_default()))
+        Ok(Self(src.0.map(|v| v.0).unwrap_or_default()))
     }
 
     fn map_err(src: SmErr<Self::Source>) -> <Self as MappedParse>::Error {
@@ -180,9 +248,9 @@ impl MappedParse for SlicePattern {
     }
 }
 
-pub struct SlicePatternItems(pub Vec<Pattern>);
-impl MappedParse for SlicePatternItems {
-    type Source = (MinLength<Interlace<Pattern, Comma>>, Option<Comma>);
+pub struct SlicePatternItems<T: Parsable>(pub Vec<Pattern<T>>);
+impl<T: Parsable> MappedParse for SlicePatternItems<T> {
+    type Source = (MinLength<Interlace<Pattern<T>, Comma>>, Option<Comma>);
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -198,13 +266,23 @@ impl MappedParse for SlicePatternItems {
     }
 }
 
-#[derive(Debug)]
-pub struct TupleStructPattern {
-    pub path: PathInExpression,
-    pub items: Vec<Pattern>,
+pub struct TupleStructPattern<T: Parsable> {
+    pub path: PathInExpression<T>,
+    pub items: Vec<Pattern<T>>,
 }
-impl MappedParse for TupleStructPattern {
-    type Source = (PathInExpression, Paren<TupleStructItems>);
+impl<T: Parsable> Debug for TupleStructPattern<T>
+where
+    SmOut<T>: Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("TupleStructPattern")
+            .field("path", &self.path)
+            .field("items", &self.items)
+            .finish()
+    }
+}
+impl<T: Parsable> MappedParse for TupleStructPattern<T> {
+    type Source = (PathInExpression<T>, Paren<TupleStructItems<T>>);
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -214,7 +292,7 @@ impl MappedParse for TupleStructPattern {
     ) -> Result<<Self as MappedParse>::Output, <Self as MappedParse>::Error> {
         Ok(Self {
             path: src.0,
-            items: src.1 .0,
+            items: src.1 .0 .0,
         })
     }
 
@@ -223,9 +301,17 @@ impl MappedParse for TupleStructPattern {
     }
 }
 
-pub struct TupleStructItems(pub Vec<Pattern>);
-impl MappedParse for TupleStructItems {
-    type Source = (MinLength<Interlace<Pattern, Comma>>, Option<Comma>);
+pub struct TupleStructItems<T: Parsable>(pub Vec<Pattern<T>>);
+impl<T: Parsable> Debug for TupleStructItems<T>
+where
+    SmOut<T>: Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("TupleStructItems").field(&self.0).finish()
+    }
+}
+impl<T: Parsable> MappedParse for TupleStructItems<T> {
+    type Source = (MinLength<Interlace<Pattern<T>, Comma>>, Option<Comma>);
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -241,10 +327,17 @@ impl MappedParse for TupleStructItems {
     }
 }
 
-#[derive(Debug)]
-pub struct TuplePattern(pub Option<TuplePatternItems>);
-impl MappedParse for TuplePattern {
-    type Source = (PathInExpression, Paren<Option<TuplePatternItems>>);
+pub struct TuplePattern<T: Parsable>(pub Option<TuplePatternItems<T>>);
+impl<T: Parsable> Debug for TuplePattern<T>
+where
+    SmOut<T>: Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("TuplePattern").field(&self.0).finish()
+    }
+}
+impl<T: Parsable> MappedParse for TuplePattern<T> {
+    type Source = (PathInExpression<T>, Paren<Option<TuplePatternItems<T>>>);
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -252,7 +345,7 @@ impl MappedParse for TuplePattern {
     fn map(
         src: SmOut<Self::Source>,
     ) -> Result<<Self as MappedParse>::Output, <Self as MappedParse>::Error> {
-        Ok(Self(src.1))
+        Ok(Self(src.1 .0))
     }
 
     fn map_err(src: SmErr<Self::Source>) -> <Self as MappedParse>::Error {
@@ -260,15 +353,25 @@ impl MappedParse for TuplePattern {
     }
 }
 
-#[derive(Debug)]
-pub enum TuplePatternItems {
-    Fields(Vec<Pattern>),
+pub enum TuplePatternItems<T: Parsable> {
+    Fields(Vec<Pattern<T>>),
     Rest,
 }
-impl MappedParse for TuplePatternItems {
+impl<T: Parsable> Debug for TuplePatternItems<T>
+where
+    SmOut<T>: Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Fields(arg0) => f.debug_tuple("Fields").field(arg0).finish(),
+            Self::Rest => write!(f, "Rest"),
+        }
+    }
+}
+impl<T: Parsable> MappedParse for TuplePatternItems<T> {
     type Source = Sum2<
-        Sum2<RestPattern, (Pattern, Comma)>,
-        (MinLength<Interlace<Pattern, Comma>, 2>, Option<Comma>),
+        Sum2<RestPattern, (Pattern<T>, Comma)>,
+        (MinLength<Interlace<Pattern<T>, Comma>, 2>, Option<Comma>),
     >;
 
     type Output = Self;
@@ -289,16 +392,27 @@ impl MappedParse for TuplePatternItems {
     }
 }
 
-#[derive(Debug)]
-pub struct StructPattern {
-    pub path: PathInExpression,
+pub struct StructPattern<T: Parsable> {
+    pub path: PathInExpression<T>,
 
     pub et_cetera: bool,
 
-    pub fields: Vec<StructPatternField>,
+    pub fields: Vec<StructPatternField<T>>,
 }
-impl MappedParse for StructPattern {
-    type Source = (PathInExpression, Brace<Option<StructPatternElements>>);
+impl<T: Parsable> Debug for StructPattern<T>
+where
+    SmOut<T>: Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("StructPattern")
+            .field("path", &self.path)
+            .field("et_cetera", &self.et_cetera)
+            .field("fields", &self.fields)
+            .finish()
+    }
+}
+impl<T: Parsable> MappedParse for StructPattern<T> {
+    type Source = (PathInExpression<T>, Brace<Option<StructPatternElements<T>>>);
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -306,7 +420,7 @@ impl MappedParse for StructPattern {
     fn map(
         src: SmOut<Self::Source>,
     ) -> Result<<Self as MappedParse>::Output, <Self as MappedParse>::Error> {
-        Ok(match src.1 {
+        Ok(match src.1 .0 {
             Some(a) => match a {
                 StructPatternElements::StructPatternEtCetera(_) => Self {
                     path: src.0,
@@ -337,17 +451,17 @@ impl MappedParse for StructPattern {
     }
 }
 
-pub enum StructPatternElements {
-    StructPatternEtCetera(StructPatternEtCetera),
-    StructPatternFields(StructPatternFields, Option<StructPatternEtCetera>),
+pub enum StructPatternElements<T: Parsable> {
+    StructPatternEtCetera(StructPatternEtCetera<T>),
+    StructPatternFields(StructPatternFields<T>, Option<StructPatternEtCetera<T>>),
 }
-impl MappedParse for StructPatternElements {
+impl<T: Parsable> MappedParse for StructPatternElements<T> {
     type Source = Sum2<
         (
-            StructPatternFields,
-            Option<Sum2<Comma, (Comma, StructPatternEtCetera)>>,
+            StructPatternFields<T>,
+            Option<Sum2<Comma, (Comma, StructPatternEtCetera<T>)>>,
         ),
-        StructPatternEtCetera,
+        StructPatternEtCetera<T>,
     >;
 
     type Output = Self;
@@ -371,16 +485,16 @@ impl MappedParse for StructPatternElements {
     }
 }
 
-pub enum StructPatternField<T: Parsable = Tokens> {
+pub enum StructPatternField<T: Parsable> {
     Tuple {
         attrs: Attrs<T>,
         id: IntegerLit,
-        pattern: Pattern,
+        pattern: Pattern<T>,
     },
     Id {
         attrs: Attrs<T>,
         id: Ident,
-        pattern: Pattern,
+        pattern: Pattern<T>,
     },
     IdShorthand {
         attrs: Attrs<T>,
@@ -416,8 +530,8 @@ where
             } => f
                 .debug_struct("IdShorthand")
                 .field("attrs", attrs)
-                .field("r#ref", r#ref)
-                .field("r#mut", r#mut)
+                .field("ref", r#ref)
+                .field("mut", r#mut)
                 .field("id", id)
                 .finish(),
         }
@@ -428,7 +542,7 @@ impl<T: Parsable> MappedParse for StructPatternField<T> {
     type Source = WithAttrs<
         T,
         Sum2<
-            Sum2<(TupleIndex, Colon, Pattern), (Identifier, Colon, Pattern)>,
+            Sum2<(TupleIndex, Colon, Pattern<T>), (Identifier, Colon, Pattern<T>)>,
             (Option<KwRef>, Option<KwMut>, Identifier),
         >,
     >;
@@ -464,7 +578,7 @@ impl<T: Parsable> MappedParse for StructPatternField<T> {
     }
 }
 
-pub struct StructPatternEtCetera<T: Parsable = Tokens>(pub Attrs<T>);
+pub struct StructPatternEtCetera<T: Parsable>(pub Attrs<T>);
 impl<T: Parsable> MappedParse for StructPatternEtCetera<T> {
     type Source = WithAttrs<T, (FJointPunct<'.'>, Dot)>;
 
@@ -482,7 +596,7 @@ impl<T: Parsable> MappedParse for StructPatternEtCetera<T> {
     }
 }
 
-pub struct StructPatternFields<T: Parsable = Tokens>(pub Vec<StructPatternField<T>>);
+pub struct StructPatternFields<T: Parsable>(pub Vec<StructPatternField<T>>);
 impl<T: Parsable> MappedParse for StructPatternFields<T> {
     type Source = MinLength<Interlace<StructPatternField<T>, Comma>>;
 
@@ -500,14 +614,25 @@ impl<T: Parsable> MappedParse for StructPatternFields<T> {
     }
 }
 
-#[derive(Debug)]
-pub struct ReferencePattern {
+pub struct ReferencePattern<T: Parsable> {
     pub ref_count: usize,
     pub r#mut: bool,
-    pub pattern: PatternWithoutRange,
+    pub pattern: PatternWithoutRange<T>,
 }
-impl MappedParse for ReferencePattern {
-    type Source = (Sum2<Amp, (Amp, Amp)>, Option<KwMut>, PatternWithoutRange);
+impl<T: Parsable> Debug for ReferencePattern<T>
+where
+    SmOut<T>: Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ReferencePattern")
+            .field("ref_count", &self.ref_count)
+            .field("mut", &self.r#mut)
+            .field("pattern", &self.pattern)
+            .finish()
+    }
+}
+impl<T: Parsable> MappedParse for ReferencePattern<T> {
+    type Source = (Sum2<Amp, (Amp, Amp)>, Option<KwMut>, PatternWithoutRange<T>);
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -579,21 +704,33 @@ impl MappedParse for LiteralPattern {
     }
 }
 
-#[derive(Debug)]
-pub struct IdentifierPattern {
+pub struct IdentifierPattern<T: Parsable> {
     pub r#ref: bool,
     pub r#mut: bool,
 
     pub id: Ident,
 
-    pub at_pattern: Option<PatternNoTopAlt>,
+    pub at_pattern: Option<PatternNoTopAlt<T>>,
 }
-impl MappedParse for IdentifierPattern {
+impl<T: Parsable> Debug for IdentifierPattern<T>
+where
+    SmOut<T>: Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("IdentifierPattern")
+            .field("ref", &self.r#ref)
+            .field("mut", &self.r#mut)
+            .field("id", &self.id)
+            .field("at_pattern", &self.at_pattern)
+            .finish()
+    }
+}
+impl<T: Parsable> MappedParse for IdentifierPattern<T> {
     type Source = (
         Option<KwRef>,
         Option<KwMut>,
         Identifier,
-        Option<(At, PatternNoTopAlt)>,
+        Option<(At, PatternNoTopAlt<T>)>,
     );
 
     type Output = Self;

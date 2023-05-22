@@ -3,20 +3,33 @@ use std::fmt::Debug;
 use super::*;
 use crate::*;
 
-#[derive(Debug)]
-pub struct BareFunctionType {
-    pub r#for: Option<ForLifetimes>,
+pub struct BareFunctionType<T: Parsable, Ty: Parsable> {
+    pub r#for: Option<ForLifetimes<T>>,
     pub qualifiers: FunctionTypeQualifiers,
-    pub params: Option<FunctionParametersMaybeNamedVariadic>,
-    pub ret: Option<BareFunctionReturnType>,
+    pub params: Option<FunctionParametersMaybeNamedVariadic<T, Ty>>,
+    pub ret: Option<BareFunctionReturnType<Ty>>,
 }
-impl MappedParse for BareFunctionType {
+impl<T: Parsable, Ty: Parsable> Debug for BareFunctionType<T, Ty>
+where
+    SmOut<T>: Debug,
+    SmOut<Ty>: Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("BareFunctionType")
+            .field("for", &self.r#for)
+            .field("qualifiers", &self.qualifiers)
+            .field("params", &self.params)
+            .field("ret", &self.ret)
+            .finish()
+    }
+}
+impl<T: Parsable, Ty: Parsable> MappedParse for BareFunctionType<T, Ty> {
     type Source = (
-        Option<ForLifetimes>,
+        Option<ForLifetimes<T>>,
         FunctionTypeQualifiers,
         KwFn,
-        Paren<Option<FunctionParametersMaybeNamedVariadic>>,
-        Option<BareFunctionReturnType>,
+        Paren<Option<FunctionParametersMaybeNamedVariadic<T, Ty>>>,
+        Option<BareFunctionReturnType<Ty>>,
     );
 
     type Output = Self;
@@ -28,7 +41,7 @@ impl MappedParse for BareFunctionType {
         Ok(Self {
             r#for: src.0,
             qualifiers: src.1,
-            params: src.3,
+            params: src.3 .0,
             ret: src.4,
         })
     }
@@ -38,13 +51,31 @@ impl MappedParse for BareFunctionType {
     }
 }
 
-#[derive(Debug)]
-pub enum FunctionParametersMaybeNamedVariadic {
-    MaybeNamedFunctionParameters(MaybeNamedFunctionParameters),
-    MaybeNamedFunctionParametersVariadic(MaybeNamedFunctionParametersVariadic),
+pub enum FunctionParametersMaybeNamedVariadic<T: Parsable, Ty: Parsable> {
+    MaybeNamedFunctionParameters(MaybeNamedFunctionParameters<Ty>),
+    MaybeNamedFunctionParametersVariadic(MaybeNamedFunctionParametersVariadic<T, Ty>),
 }
-impl MappedParse for FunctionParametersMaybeNamedVariadic {
-    type Source = Sum2<MaybeNamedFunctionParametersVariadic, MaybeNamedFunctionParameters>;
+impl<T: Parsable, Ty: Parsable> Debug for FunctionParametersMaybeNamedVariadic<T, Ty>
+where
+    SmOut<T>: Debug,
+    SmOut<Ty>: Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::MaybeNamedFunctionParameters(arg0) => f
+                .debug_tuple("MaybeNamedFunctionParameters")
+                .field(arg0)
+                .finish(),
+            Self::MaybeNamedFunctionParametersVariadic(arg0) => f
+                .debug_tuple("MaybeNamedFunctionParametersVariadic")
+                .field(arg0)
+                .finish(),
+        }
+    }
+}
+impl<T: Parsable, Ty: Parsable> MappedParse for FunctionParametersMaybeNamedVariadic<T, Ty> {
+    type Source =
+        Sum2<MaybeNamedFunctionParametersVariadic<T, Ty>, MaybeNamedFunctionParameters<Ty>>;
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -63,14 +94,15 @@ impl MappedParse for FunctionParametersMaybeNamedVariadic {
     }
 }
 
-pub struct MaybeNamedFunctionParametersVariadic<T: Parsable = Tokens>(
-    pub Vec<MaybeNamedParam>,
+pub struct MaybeNamedFunctionParametersVariadic<T: Parsable, Ty: Parsable>(
+    pub Vec<MaybeNamedParam<Ty>>,
     pub Attrs<T>,
 );
 
-impl<T: Parsable> Debug for MaybeNamedFunctionParametersVariadic<T>
+impl<T: Parsable, Ty: Parsable> Debug for MaybeNamedFunctionParametersVariadic<T, Ty>
 where
     SmOut<T>: Debug,
+    SmOut<Ty>: Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_tuple("MaybeNamedFunctionParametersVariadic")
@@ -79,9 +111,9 @@ where
             .finish()
     }
 }
-impl<T: Parsable> MappedParse for MaybeNamedFunctionParametersVariadic<T> {
+impl<T: Parsable, Ty: Parsable> MappedParse for MaybeNamedFunctionParametersVariadic<T, Ty> {
     type Source = (
-        MinLength<Interlace<MaybeNamedParam, Comma>>,
+        MinLength<Interlace<MaybeNamedParam<Ty>, Comma>>,
         Comma,
         Attrs<T>,
         Elipsis,
@@ -101,10 +133,19 @@ impl<T: Parsable> MappedParse for MaybeNamedFunctionParametersVariadic<T> {
     }
 }
 
-#[derive(Debug)]
-pub struct MaybeNamedFunctionParameters(pub Vec<MaybeNamedParam>);
-impl MappedParse for MaybeNamedFunctionParameters {
-    type Source = (Interlace<MaybeNamedParam, Comma>, Option<Comma>);
+pub struct MaybeNamedFunctionParameters<Ty: Parsable>(pub Vec<MaybeNamedParam<Ty>>);
+impl<Ty: Parsable> Debug for MaybeNamedFunctionParameters<Ty>
+where
+    SmOut<Ty>: Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("MaybeNamedFunctionParameters")
+            .field(&self.0)
+            .finish()
+    }
+}
+impl<Ty: Parsable> MappedParse for MaybeNamedFunctionParameters<Ty> {
+    type Source = (Interlace<MaybeNamedParam<Ty>, Comma>, Option<Comma>);
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -120,13 +161,23 @@ impl MappedParse for MaybeNamedFunctionParameters {
     }
 }
 
-#[derive(Debug)]
-pub struct MaybeNamedParam {
+pub struct MaybeNamedParam<Ty: Parsable> {
     pub id: Option<Ident>,
-    pub ty: Type,
+    pub ty: SmOut<Ty>,
 }
-impl MappedParse for MaybeNamedParam {
-    type Source = (Option<(IdentifierOrUnder, Colon)>, Type);
+impl<Ty: Parsable> Debug for MaybeNamedParam<Ty>
+where
+    SmOut<Ty>: Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("MaybeNamedParam")
+            .field("id", &self.id)
+            .field("ty", &self.ty)
+            .finish()
+    }
+}
+impl<Ty: Parsable> MappedParse for MaybeNamedParam<Ty> {
+    type Source = (Option<(IdentifierOrUnder, Colon)>, Ty);
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -170,10 +221,19 @@ impl MappedParse for FunctionTypeQualifiers {
     }
 }
 
-#[derive(Debug)]
-pub struct BareFunctionReturnType(pub TypeNoBounds);
-impl MappedParse for BareFunctionReturnType {
-    type Source = (Arrow, TypeNoBounds);
+pub struct BareFunctionReturnType<Ty: Parsable>(pub SmOut<Ty>);
+impl<Ty: Parsable> Debug for BareFunctionReturnType<Ty>
+where
+    SmOut<Ty>: Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("BareFunctionReturnType")
+            .field(&self.0)
+            .finish()
+    }
+}
+impl<Ty: Parsable> MappedParse for BareFunctionReturnType<Ty> {
+    type Source = (Arrow, Ty);
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -195,12 +255,12 @@ mod tests {
 
     insta_match_test!(
         it_matches_complex_fun,
-        BareFunctionType: for<'a> unsafe extern "C" fn(Hello, World, ...) -> i64
+        BareFunctionType<Infallible, PBox<TypeNoBounds<Infallible>>>: for<'a> unsafe extern "C" fn(Hello, World, ...) -> i64
     );
-    insta_match_test!(it_matches_return, BareFunctionType: fn(Hello, World) -> i64);
-    insta_match_test!(it_matches_simple, BareFunctionType: fn());
+    insta_match_test!(it_matches_return, BareFunctionType<Infallible, PBox<TypeNoBounds<Infallible>>>: fn(Hello, World) -> i64);
+    insta_match_test!(it_matches_simple, BareFunctionType<Infallible, PBox<TypeNoBounds<Infallible>>>: fn());
     insta_match_test!(
         it_matches_qualified,
-        BareFunctionType: for<'a> unsafe extern "C" fn()
+        BareFunctionType<Infallible,PBox<TypeNoBounds<Infallible>>>: for<'a> unsafe extern "C" fn()
     );
 }

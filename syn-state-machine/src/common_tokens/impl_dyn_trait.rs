@@ -1,10 +1,17 @@
 use super::*;
 use crate::*;
 
-#[derive(Debug)]
-pub struct ImplTraitType(pub SmOut<TypeParamBounds>);
-impl MappedParse for ImplTraitType {
-    type Source = (KwImpl, TypeParamBounds);
+pub struct ImplTraitType<T: Parsable>(pub SmOut<TypeParamBounds<T>>);
+impl<T: Parsable> Debug for ImplTraitType<T>
+where
+    SmOut<T>: Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("ImplTraitType").field(&self.0).finish()
+    }
+}
+impl<T: Parsable> MappedParse for ImplTraitType<T> {
+    type Source = (KwImpl, TypeParamBounds<T>);
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -20,10 +27,19 @@ impl MappedParse for ImplTraitType {
     }
 }
 
-#[derive(Debug)]
-pub struct ImplTraitTypeOneBound(pub TraitBound);
-impl MappedParse for ImplTraitTypeOneBound {
-    type Source = (KwImpl, TraitBound);
+pub struct ImplTraitTypeOneBound<T: Parsable>(pub TraitBound<T>);
+impl<T: Parsable> Debug for ImplTraitTypeOneBound<T>
+where
+    SmOut<T>: Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("ImplTraitTypeOneBound")
+            .field(&self.0)
+            .finish()
+    }
+}
+impl<T: Parsable> MappedParse for ImplTraitTypeOneBound<T> {
+    type Source = (KwImpl, TraitBound<T>);
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -39,10 +55,17 @@ impl MappedParse for ImplTraitTypeOneBound {
     }
 }
 
-#[derive(Debug)]
-pub struct TraitObjectType(pub SmOut<TypeParamBounds>);
-impl MappedParse for TraitObjectType {
-    type Source = (KwDyn, TypeParamBounds);
+pub struct TraitObjectType<T: Parsable>(pub SmOut<TypeParamBounds<T>>);
+impl<T: Parsable> Debug for TraitObjectType<T>
+where
+    SmOut<T>: Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("TraitObjectType").field(&self.0).finish()
+    }
+}
+impl<T: Parsable> MappedParse for TraitObjectType<T> {
+    type Source = (KwDyn, TypeParamBounds<T>);
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -58,10 +81,19 @@ impl MappedParse for TraitObjectType {
     }
 }
 
-#[derive(Debug)]
-pub struct TraitObjectTypeOneBound(pub TraitBound);
-impl MappedParse for TraitObjectTypeOneBound {
-    type Source = (KwDyn, TraitBound);
+pub struct TraitObjectTypeOneBound<T: Parsable>(pub TraitBound<T>);
+impl<T: Parsable> Debug for TraitObjectTypeOneBound<T>
+where
+    SmOut<T>: Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("TraitObjectTypeOneBound")
+            .field(&self.0)
+            .finish()
+    }
+}
+impl<T: Parsable> MappedParse for TraitObjectTypeOneBound<T> {
+    type Source = (KwDyn, TraitBound<T>);
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -84,17 +116,17 @@ mod tests {
     use super::*;
     use crate::*;
 
-    insta_match_test!(it_matches_dyn_hello, TraitObjectTypeOneBound: dyn Hello);
-    insta_match_test!(it_matches_impl_hello, ImplTraitTypeOneBound: impl Hello);
+    insta_match_test!(it_matches_dyn_hello, TraitObjectTypeOneBound<Infallible>: dyn Hello);
+    insta_match_test!(it_matches_impl_hello, ImplTraitTypeOneBound<Infallible>: impl Hello);
 
-    insta_match_test!(it_matches_dyn_hello_type, TraitObjectType: dyn Hello);
-    insta_match_test!(it_matches_impl_hello_type, ImplTraitType: impl Hello);
+    insta_match_test!(it_matches_dyn_hello_type, TraitObjectType<Infallible>: dyn Hello);
+    insta_match_test!(it_matches_impl_hello_type, ImplTraitType<Infallible>: impl Hello);
     insta_match_test!(
         it_matches_compound_dyn_type,
-        TraitObjectType: dyn 'a + Hello
+        TraitObjectType<Infallible>: dyn 'a + Hello
     );
     insta_match_test!(
         it_matches_compound_impl_type,
-        ImplTraitType: impl 'a +Hello
+        ImplTraitType<Infallible>: impl 'a +Hello
     );
 }

@@ -1,24 +1,39 @@
 use super::*;
 use crate::*;
+use std::fmt::Debug;
 
-#[derive(Debug)]
-pub struct TypeAlias {
+pub struct TypeAlias<T: Parsable> {
     pub id: Ident,
-    pub params: Option<GenericParams>,
-    pub bounds: Option<TypeParamBounds>,
-    pub pre_where_clause: Option<WhereClause>,
+    pub params: Option<GenericParams<T>>,
+    pub bounds: Option<TypeParamBounds<T>>,
+    pub pre_where_clause: Option<WhereClause<T>>,
 
-    pub ty: Option<Type>,
-    pub post_where_clause: Option<WhereClause>,
+    pub ty: Option<Type<T>>,
+    pub post_where_clause: Option<WhereClause<T>>,
 }
-impl MappedParse for TypeAlias {
+impl<T: Parsable> Debug for TypeAlias<T>
+where
+    SmOut<T>: Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("TypeAlias")
+            .field("id", &self.id)
+            .field("params", &self.params)
+            .field("bounds", &self.bounds)
+            .field("pre_where_clause", &self.pre_where_clause)
+            .field("ty", &self.ty)
+            .field("post_where_clause", &self.post_where_clause)
+            .finish()
+    }
+}
+impl<T: Parsable> MappedParse for TypeAlias<T> {
     type Source = (
         KwType,
         Identifier,
-        Option<GenericParams>,
-        Option<(Colon, TypeParamBounds)>,
-        Option<WhereClause>,
-        Option<(Eq, Type, Option<WhereClause>)>,
+        Option<GenericParams<T>>,
+        Option<(Colon, TypeParamBounds<T>)>,
+        Option<WhereClause<T>>,
+        Option<(Eq, Type<T>, Option<WhereClause<T>>)>,
         Semi,
     );
 
@@ -52,7 +67,8 @@ impl MappedParse for TypeAlias {
 mod tests {
     use super::TypeAlias;
     use crate::insta_match_test;
+    use std::convert::Infallible;
 
-    insta_match_test!(it_matches_simple, TypeAlias: type Point = (u8, u8););
-    insta_match_test!(it_matches_complex, TypeAlias: type Point<T> where T: std::ops::Add = (T, T););
+    insta_match_test!(it_matches_simple, TypeAlias<Infallible>: type Point = (u8, u8););
+    insta_match_test!(it_matches_complex, TypeAlias<Infallible>: type Point<T> where T: std::ops::Add = (T, T););
 }

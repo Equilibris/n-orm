@@ -43,10 +43,17 @@ impl MappedParse for LifetimeBounds {
     }
 }
 
-#[derive(Debug)]
-pub struct TypeParamBounds(pub Vec<TypeParamBound>);
-impl MappedParse for TypeParamBounds {
-    type Source = Interlace<TypeParamBound, Plus>;
+pub struct TypeParamBounds<T: Parsable>(pub Vec<TypeParamBound<T>>);
+impl<T: Parsable> Debug for TypeParamBounds<T>
+where
+    SmOut<T>: Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("TypeParamBounds").field(&self.0).finish()
+    }
+}
+impl<T: Parsable> MappedParse for TypeParamBounds<T> {
+    type Source = Interlace<TypeParamBound<T>, Plus>;
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -62,13 +69,23 @@ impl MappedParse for TypeParamBounds {
     }
 }
 
-#[derive(Debug)]
-pub enum TypeParamBound {
+pub enum TypeParamBound<T: Parsable> {
     Lifetime(Lifetime),
-    TraitBound(TraitBound),
+    TraitBound(TraitBound<T>),
 }
-impl MappedParse for TypeParamBound {
-    type Source = Sum2<Lifetime, TraitBound>;
+impl<T: Parsable> Debug for TypeParamBound<T>
+where
+    SmOut<T>: Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Lifetime(arg0) => f.debug_tuple("Lifetime").field(arg0).finish(),
+            Self::TraitBound(arg0) => f.debug_tuple("TraitBound").field(arg0).finish(),
+        }
+    }
+}
+impl<T: Parsable> MappedParse for TypeParamBound<T> {
+    type Source = Sum2<Lifetime, TraitBound<T>>;
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -87,16 +104,27 @@ impl MappedParse for TypeParamBound {
     }
 }
 
-#[derive(Debug)]
-pub struct TraitBound {
+pub struct TraitBound<T: Parsable> {
     pub q: bool,
 
-    pub r#for: Option<GenericParams>,
-    pub ty: TypePath,
+    pub r#for: Option<GenericParams<T>>,
+    pub ty: TypePath<T>,
 }
-type TraitBoundInternal = (Option<FPunct<'?'>>, Option<ForLifetimes>, TypePath);
-impl MappedParse for TraitBound {
-    type Source = Sum2<MBox<TraitBoundInternal>, Paren<TraitBoundInternal>>;
+impl<T: Parsable> Debug for TraitBound<T>
+where
+    SmOut<T>: Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("TraitBound")
+            .field("q", &self.q)
+            .field("for", &self.r#for)
+            .field("ty", &self.ty)
+            .finish()
+    }
+}
+type TraitBoundInternal<T> = (Option<FPunct<'?'>>, Option<ForLifetimes<T>>, TypePath<T>);
+impl<T: Parsable> MappedParse for TraitBound<T> {
+    type Source = Sum2<MBox<TraitBoundInternal<T>>, Paren<TraitBoundInternal<T>>>;
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -105,7 +133,7 @@ impl MappedParse for TraitBound {
         src: SmOut<Self::Source>,
     ) -> Result<<Self as MappedParse>::Output, <Self as MappedParse>::Error> {
         Ok(match src {
-            Sum2::Val1(src) | Sum2::Val0(src) => Self {
+            Sum2::Val0(src) | Sum2::Val1(Paren(src)) => Self {
                 q: src.0.is_some(),
                 r#for: src.1.map(|v| v.0),
                 ty: src.2,
@@ -118,10 +146,17 @@ impl MappedParse for TraitBound {
     }
 }
 
-#[derive(Debug)]
-pub struct ForLifetimes(pub GenericParams);
-impl MappedParse for ForLifetimes {
-    type Source = (KwFor, GenericParams);
+pub struct ForLifetimes<T: Parsable>(pub GenericParams<T>);
+impl<T: Parsable> Debug for ForLifetimes<T>
+where
+    SmOut<T>: Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("ForLifetimes").field(&self.0).finish()
+    }
+}
+impl<T: Parsable> MappedParse for ForLifetimes<T> {
+    type Source = (KwFor, GenericParams<T>);
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -143,22 +178,22 @@ mod tests {
 
     insta_match_test!(it_matches_lifetime, Lifetime : 'a);
     insta_match_test!(it_matches_lifetimes_bounds, LifetimeBounds : 'a + 'b);
-    insta_match_test!(it_matches_bound_path, TraitBound: std::fmt::Debug);
-    insta_match_test!(it_matches_for_paths, TraitBound: for<'a> std::fmt::Debug);
+    insta_match_test!(it_matches_bound_path, TraitBound<Infallible>: std::fmt::Debug);
+    insta_match_test!(it_matches_for_paths, TraitBound<Infallible>: for<'a> std::fmt::Debug);
     insta_match_test!(
         it_matches_path_type_param_bound,
-        TypeParamBound: std::fmt::Debug
+        TypeParamBound<Infallible>: std::fmt::Debug
     );
     insta_match_test!(
         it_matches_for_paths_type_param_bound,
-        TypeParamBound: for<'a> std::fmt::Debug
+        TypeParamBound<Infallible>: for<'a> std::fmt::Debug
     );
     insta_match_test!(
         it_matches_lifetime_type_param_bound,
-        TypeParamBound: 'a
+        TypeParamBound<Infallible>: 'a
     );
     insta_match_test!(
         it_matches_for_lifetimes,
-        ForLifetimes: for<'a, 'b>
+        ForLifetimes<Infallible>: for<'a, 'b>
     );
 }

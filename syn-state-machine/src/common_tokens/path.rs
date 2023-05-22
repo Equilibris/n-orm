@@ -6,6 +6,7 @@ mod types;
 pub use expressions::*;
 pub use qualified::*;
 pub use simple::*;
+pub use std::fmt::Debug;
 pub use types::*;
 
 use super::*;
@@ -37,10 +38,20 @@ impl MappedParse for PathIdentSegment {
     }
 }
 
-#[derive(Debug)]
-pub struct GenericArgsBinding(pub Ident, pub Type);
-impl MappedParse for GenericArgsBinding {
-    type Source = (Identifier, Eq, Type);
+pub struct GenericArgsBinding<T: Parsable>(pub Ident, pub Type<T>);
+impl<T: Parsable> Debug for GenericArgsBinding<T>
+where
+    SmOut<T>: Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("GenericArgsBinding")
+            .field(&self.0)
+            .field(&self.1)
+            .finish()
+    }
+}
+impl<T: Parsable> MappedParse for GenericArgsBinding<T> {
+    type Source = (Identifier, Eq, Type<T>);
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -56,15 +67,27 @@ impl MappedParse for GenericArgsBinding {
     }
 }
 
-#[derive(Debug)]
-pub enum GenericArg {
+pub enum GenericArg<T: Parsable> {
     Lifetime(Lifetime),
-    Type(Type),
+    Type(Type<T>),
     GenericArgConst(GenericArgsConst), // TODO:
-    ArgsBinding(GenericArgsBinding),
+    ArgsBinding(GenericArgsBinding<T>),
 }
-impl MappedParse for GenericArg {
-    type Source = Sum4<Lifetime, GenericArgsBinding, Type, GenericArgsConst>;
+impl<T: Parsable> Debug for GenericArg<T>
+where
+    SmOut<T>: Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Lifetime(arg0) => f.debug_tuple("Lifetime").field(arg0).finish(),
+            Self::Type(arg0) => f.debug_tuple("Type").field(arg0).finish(),
+            Self::GenericArgConst(arg0) => f.debug_tuple("GenericArgConst").field(arg0).finish(),
+            Self::ArgsBinding(arg0) => f.debug_tuple("ArgsBinding").field(arg0).finish(),
+        }
+    }
+}
+impl<T: Parsable> MappedParse for GenericArg<T> {
+    type Source = Sum4<Lifetime, GenericArgsBinding<T>, Type<T>, GenericArgsConst>;
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -85,16 +108,26 @@ impl MappedParse for GenericArg {
     }
 }
 
-#[derive(Debug)]
-pub struct GenericArgs(pub Vec<GenericArg>);
-impl MappedParse for GenericArgs {
+pub struct GenericArgs<T: Parsable>(pub Vec<GenericArg<T>>);
+impl<T: Parsable> Debug for GenericArgs<T>
+where
+    SmOut<T>: Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("GenericArgs").field(&self.0).finish()
+    }
+}
+impl<T: Parsable> MappedParse for GenericArgs<T> {
     type Source = (
         Lt,
-        Option<(MinLength<Interlace<MBox<GenericArg>, Comma>>, Option<Comma>)>,
+        Option<(
+            MinLength<Interlace<MBox<GenericArg<T>>, Comma>>,
+            Option<Comma>,
+        )>,
         Gt,
     );
 
-    type Output = GenericArgs;
+    type Output = GenericArgs<T>;
     type Error = SmErr<Self::Source>;
 
     fn map(
@@ -137,13 +170,26 @@ impl MappedParse for GenericArgsConst {
     }
 }
 
-#[derive(Debug)]
-pub enum PathExpression {
-    PathInExpression(PathInExpression),
-    QualifiedPathInExpression(QualifiedPathInExpression),
+pub enum PathExpression<T: Parsable> {
+    PathInExpression(PathInExpression<T>),
+    QualifiedPathInExpression(QualifiedPathInExpression<T>),
 }
-impl MappedParse for PathExpression {
-    type Source = Sum2<PathInExpression, QualifiedPathInExpression>;
+impl<T: Parsable> Debug for PathExpression<T>
+where
+    SmOut<T>: Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::PathInExpression(arg0) => f.debug_tuple("PathInExpression").field(arg0).finish(),
+            Self::QualifiedPathInExpression(arg0) => f
+                .debug_tuple("QualifiedPathInExpression")
+                .field(arg0)
+                .finish(),
+        }
+    }
+}
+impl<T: Parsable> MappedParse for PathExpression<T> {
+    type Source = Sum2<PathInExpression<T>, QualifiedPathInExpression<T>>;
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -165,19 +211,20 @@ impl MappedParse for PathExpression {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::convert::Infallible;
 
-    insta_match_test!(it_matches_hello, TypePath: hello);
-    insta_match_test!(it_matches_hello_world, TypePath: hello::world);
-    insta_match_test!(it_matches_hello_world_hi, TypePath: hello::world::hi);
+    insta_match_test!(it_matches_hello, TypePath<Infallible>: hello);
+    insta_match_test!(it_matches_hello_world, TypePath<Infallible>: hello::world);
+    insta_match_test!(it_matches_hello_world_hi, TypePath<Infallible>: hello::world::hi);
 
-    insta_match_test!(it_matches_empty_generic_args, GenericArgs: <>);
-    insta_match_test!(it_matches_lifetime_args, GenericArgs: <'a>);
-    insta_match_test!(it_matches_typed_args, GenericArgs: <T>);
-    insta_match_test!(it_matches_pathed_args, GenericArgs: <hello::world>);
-    insta_match_test!(it_matches_multi_args, GenericArgs: <'a, T, hello::world>);
+    insta_match_test!(it_matches_empty_generic_args, GenericArgs<Infallible>: <>);
+    insta_match_test!(it_matches_lifetime_args, GenericArgs<Infallible>: <'a>);
+    insta_match_test!(it_matches_typed_args, GenericArgs<Infallible>: <T>);
+    insta_match_test!(it_matches_pathed_args, GenericArgs<Infallible>: <hello::world>);
+    insta_match_test!(it_matches_multi_args, GenericArgs<Infallible>: <'a, T, hello::world>);
 
     insta_match_test!(
         it_matches_expr_path,
-        PathInExpression: usize::hello::<Hello, World>
+        PathInExpression<Infallible>: usize::hello::<Hello, World>
     );
 }

@@ -1,15 +1,25 @@
 use super::super::*;
 use crate::*;
 
-#[derive(Debug)]
-pub struct PathInExpression {
+pub struct PathInExpression<T: Parsable> {
     pub leading: bool,
-    pub segments: Vec<PathExprSegment>,
+    pub segments: Vec<PathExprSegment<T>>,
 }
-impl MappedParse for PathInExpression {
+impl<T: Parsable> Debug for PathInExpression<T>
+where
+    SmOut<T>: Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("PathInExpression")
+            .field("leading", &self.leading)
+            .field("segments", &self.segments)
+            .finish()
+    }
+}
+impl<T: Parsable> MappedParse for PathInExpression<T> {
     type Source = (
         Option<DoubleColon>,
-        MinLength<Interlace<PathExprSegment, DoubleColon>>,
+        MinLength<Interlace<PathExprSegment<T>, DoubleColon>>,
     );
 
     type Output = Self;
@@ -29,10 +39,20 @@ impl MappedParse for PathInExpression {
     }
 }
 
-#[derive(Debug)]
-pub struct PathExprSegment(pub PathIdentSegment, pub Option<GenericArgs>);
-impl MappedParse for PathExprSegment {
-    type Source = (PathIdentSegment, Option<(DoubleColon, GenericArgs)>);
+pub struct PathExprSegment<T: Parsable>(pub PathIdentSegment, pub Option<GenericArgs<T>>);
+impl<T: Parsable> Debug for PathExprSegment<T>
+where
+    SmOut<T>: Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("PathExprSegment")
+            .field(&self.0)
+            .field(&self.1)
+            .finish()
+    }
+}
+impl<T: Parsable> MappedParse for PathExprSegment<T> {
+    type Source = (PathIdentSegment, Option<(DoubleColon, GenericArgs<T>)>);
 
     type Output = Self;
     type Error = SmErr<Self::Source>;

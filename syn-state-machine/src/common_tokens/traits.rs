@@ -2,25 +2,25 @@ use super::*;
 use crate::*;
 use std::fmt::Debug;
 
-pub struct Trait<A: Parsable = Tokens> {
+pub struct Trait<T: Parsable> {
     pub r#unsafe: bool,
 
     pub id: Ident,
-    pub genetic_params: Option<GenericParams>,
-    pub bound: Option<TypeParamBounds>,
-    pub where_clause: Option<WhereClause>,
+    pub genetic_params: Option<GenericParams<T>>,
+    pub bound: Option<TypeParamBounds<T>>,
+    pub where_clause: Option<WhereClause<T>>,
 
-    pub attrs: InnerAttrs<A>,
-    pub associate_items: AssociateItems<A>,
+    pub attrs: InnerAttrs<T>,
+    pub associate_items: AssociateItems<T>,
 }
 impl<T: Parsable> MappedParse for Trait<T> {
     type Source = (
         Option<KwUnsafe>,
         KwTrait,
         Identifier,
-        Option<GenericParams>,
-        Option<(Colon, Option<TypeParamBounds>)>,
-        Option<WhereClause>,
+        Option<GenericParams<T>>,
+        Option<(Colon, Option<TypeParamBounds<T>>)>,
+        Option<WhereClause<T>>,
         Brace<WithInnerAttrs<T, AssociateItems<T>>>,
     );
 
@@ -36,8 +36,8 @@ impl<T: Parsable> MappedParse for Trait<T> {
             genetic_params: src.3,
             where_clause: src.5,
             bound: src.4.and_then(|v| v.1),
-            attrs: src.6 .0,
-            associate_items: src.6 .1,
+            attrs: src.6 .0 .0,
+            associate_items: src.6 .0 .1,
         })
     }
 
@@ -51,7 +51,7 @@ where
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Trait")
-            .field("r#unsafe", &self.r#unsafe)
+            .field("unsafe", &self.r#unsafe)
             .field("id", &self.id)
             .field("genetic_params", &self.genetic_params)
             .field("bound", &self.bound)
@@ -68,7 +68,7 @@ mod tests {
     use crate::insta_match_test;
 
     insta_match_test!(
-        it_matches_trait, Trait :
+        it_matches_trait, Trait <Infallible>:
         unsafe trait HelloWorld<T> : From<T> where T: Sized {
             type Hello: World;
         }

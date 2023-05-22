@@ -2,22 +2,34 @@ use super::*;
 use crate::*;
 use std::fmt::Debug;
 
-#[derive(Debug)]
-pub struct StaticItem {
+pub struct StaticItem<T: Parsable> {
     pub id: Ident,
-    pub ty: Type,
+    pub ty: Type<T>,
 
     pub r#mut: bool,
 
     pub expr: Option<Expression>,
 }
-impl MappedParse for StaticItem {
+impl<T: Parsable> Debug for StaticItem<T>
+where
+    SmOut<T>: Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("StaticItem")
+            .field("id", &self.id)
+            .field("ty", &self.ty)
+            .field("mut", &self.r#mut)
+            .field("expr", &self.expr)
+            .finish()
+    }
+}
+impl<T: Parsable> MappedParse for StaticItem<T> {
     type Source = (
         KwStruct,
         Option<KwMut>,
         IdentifierOrUnder,
         Colon,
-        Type,
+        Type<T>,
         Option<(Eq, Expression)>,
         Semi,
     );

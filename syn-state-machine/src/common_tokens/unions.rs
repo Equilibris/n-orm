@@ -2,18 +2,18 @@ use super::*;
 use crate::*;
 use std::fmt::Debug;
 
-pub struct Union<T: Parsable = Tokens> {
+pub struct Union<T: Parsable> {
     pub id: Ident,
-    pub genetic_params: Option<GenericParams>,
-    pub where_clause: Option<WhereClause>,
+    pub genetic_params: Option<GenericParams<T>>,
+    pub where_clause: Option<WhereClause<T>>,
     pub fields: StructFields<T>,
 }
 impl<T: Parsable> MappedParse for Union<T> {
     type Source = (
         KwUnion,
         Ident,
-        Option<GenericParams>,
-        Option<WhereClause>,
+        Option<GenericParams<T>>,
+        Option<WhereClause<T>>,
         Brace<MinLength<StructFields<T>>>,
     );
 
@@ -27,7 +27,7 @@ impl<T: Parsable> MappedParse for Union<T> {
             id: src.1,
             genetic_params: src.2,
             where_clause: src.3,
-            fields: src.4,
+            fields: src.4 .0,
         })
     }
 
@@ -54,7 +54,7 @@ mod tests {
     use super::*;
     use crate::insta_match_test;
 
-    insta_match_test!(it_matches_union, Union : union MyUnion {
+    insta_match_test!(it_matches_union, Union <Infallible>: union MyUnion {
         f1: u32,
         f2: f32,
     });

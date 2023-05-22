@@ -1,0 +1,23 @@
+---
+source: syn-state-machine/src/common_tokens/use_declarations.rs
+expression: "crate::parse::<Use>(::quote::quote! { use hello :: * ; })"
+---
+Ok(
+    (
+        Use(
+            Star(
+                SimplePathOrNone {
+                    leading_double_colon: false,
+                    segments: [
+                        Id(
+                            Ident(
+                                hello,
+                            ),
+                        ),
+                    ],
+                },
+            ),
+        ),
+        0,
+    ),
+)

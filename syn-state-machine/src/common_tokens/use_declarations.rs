@@ -35,7 +35,7 @@ impl MappedParse for UseTree {
                     Some(a) => a.0,
                     None => SimplePathOrNone::default(),
                 },
-                deep: a.1 .0 .0,
+                deep: a.1 .0 .0 .0,
             },
             Val1(Val0((a, _))) => Self::Star({
                 match a {
@@ -51,18 +51,19 @@ impl MappedParse for UseTree {
     }
 }
 
-pub struct Use;
+#[derive(Debug)]
+pub struct Use(pub UseTree);
 
 impl MappedParse for Use {
     type Source = (KwUse, UseTree, Semi);
 
-    type Output = UseTree;
+    type Output = Self;
     type Error = SmErr<Self::Source>;
 
     fn map(
         src: SmOut<Self::Source>,
     ) -> Result<<Self as MappedParse>::Output, <Self as MappedParse>::Error> {
-        Ok(src.1)
+        Ok(Self(src.1))
     }
 
     fn map_err(src: SmErr<Self::Source>) -> <Self as MappedParse>::Error {
@@ -76,95 +77,8 @@ mod tests {
     use crate::*;
     use quote::quote;
 
-    fn use_tree_to_idents(source: &mut Vec<Ident>, use_tree: UseTree) {
-        match use_tree {
-            UseTree::Star(a) => {
-                for p in a.segments {
-                    match p {
-                        SimplePathSegment::Id(a) => source.push(a),
-                        SimplePathSegment::DCrate => unimplemented!(),
-                    }
-                }
-            }
-            UseTree::Recursion { name, deep } => {
-                for p in name.segments {
-                    match p {
-                        SimplePathSegment::Id(a) => source.push(a),
-                        SimplePathSegment::DCrate => unimplemented!(),
-                    }
-                }
-
-                for v in deep {
-                    use_tree_to_idents(source, v);
-                }
-            }
-            UseTree::Standard(s, t) => {
-                for p in s.segments {
-                    match p {
-                        SimplePathSegment::Id(a) => source.push(a),
-                        SimplePathSegment::DCrate => unimplemented!(),
-                    }
-                }
-
-                if let Some(v) = t {
-                    source.push(v)
-                }
-            }
-        }
-    }
-
-    #[test]
-    fn it_matches_simple_path() {
-        for i in [
-            quote! { use hello::world; },
-            quote! { use hei; },
-            quote! { use hei as h; },
-        ] {
-            let p = parse_terminal::<Use>(i);
-
-            let p = match p {
-                Ok(p) => p,
-                Err(e) => panic!("{}", e),
-            };
-
-            if let UseTree::Standard(..) = p {
-            } else {
-                unreachable!()
-            }
-        }
-    }
-    #[test]
-    fn it_matches_star_path() {
-        for i in [quote! { use *; }, quote! { use hei::*; }] {
-            let p = parse_terminal::<Use>(i);
-
-            let p = match p {
-                Ok(p) => p,
-                Err(e) => panic!("{}", e),
-            };
-
-            if let UseTree::Star(_) = p {
-            } else {
-                unreachable!()
-            }
-        }
-    }
-    #[test]
-    fn it_matches_complex_path() {
-        let mut v = Vec::new();
-
-        use_tree_to_idents(
-            &mut v,
-            parse_terminal::<Use>(
-                quote::quote! { use { hello::*, world::hi as Hi, nested::{ hello::world, hi }, }; },
-            )
-            .unwrap(),
-        );
-
-        for (lhs, rhs) in v.into_iter().zip([
-            "hello", "world", "hi", "Hi", "nested", "hello", "world", "hi",
-        ]) {
-            assert_eq!(lhs.to_string().as_str(), rhs)
-        }
-    }
+    insta_match_test!(it_matches_simple_path, Use : use hello::world; );
+    insta_match_test!(it_matches_simple_path_as, Use : use hello::world as h; );
+    insta_match_test!(it_matches_star_path, Use : use hello::*; );
+    insta_match_test!(it_matches_complex_path, Use :  use { hello::*, world::hi as Hi, nested::{ hello::world, hi }, }; );
 }

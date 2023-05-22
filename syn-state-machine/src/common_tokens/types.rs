@@ -1,14 +1,26 @@
 use super::*;
 use crate::*;
+use std::fmt::Debug;
 
-#[derive(Debug)]
-pub enum Type {
-    NoBounds(TypeNoBounds),
-    ImplTrait(ImplTraitType),
-    TraitObject(TraitObjectType),
+pub enum Type<T: Parsable> {
+    NoBounds(TypeNoBounds<T>),
+    ImplTrait(ImplTraitType<T>),
+    TraitObject(TraitObjectType<T>),
 }
-impl MappedParse for Type {
-    type Source = Sum3<TypeNoBounds, MBox<ImplTraitType>, MBox<TraitObjectType>>;
+impl<T: Parsable> Debug for Type<T>
+where
+    SmOut<T>: Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::NoBounds(arg0) => f.debug_tuple("NoBounds").field(arg0).finish(),
+            Self::ImplTrait(arg0) => f.debug_tuple("ImplTrait").field(arg0).finish(),
+            Self::TraitObject(arg0) => f.debug_tuple("TraitObject").field(arg0).finish(),
+        }
+    }
+}
+impl<T: Parsable> MappedParse for Type<T> {
+    type Source = Sum3<TypeNoBounds<T>, MBox<ImplTraitType<T>>, MBox<TraitObjectType<T>>>;
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -28,64 +40,110 @@ impl MappedParse for Type {
     }
 }
 
-#[derive(Debug, thiserror::Error)]
+#[derive(thiserror::Error)]
 #[error("Expected type")]
-pub struct TypeNoBoundsError {
-    pub parenthesized: Box<SmErr<ParenthesizedType>>,
-    pub impl_trait_one_bound: SmErr<ImplTraitTypeOneBound>,
-    pub trait_object_one_bound: SmErr<TraitObjectTypeOneBound>,
-    pub type_path: SmErr<TypePath>,
-    pub tuple: SmErr<TupleType>,
+pub struct TypeNoBoundsError<T: Parsable> {
+    pub parenthesized: Box<SmErr<ParenthesizedType<T>>>,
+    pub impl_trait_one_bound: SmErr<ImplTraitTypeOneBound<T>>,
+    pub trait_object_one_bound: SmErr<TraitObjectTypeOneBound<T>>,
+    pub type_path: SmErr<TypePath<T>>,
+    pub tuple: SmErr<TupleType<T>>,
     pub never: SmErr<NeverType>,
-    pub raw_pointer: Box<SmErr<RawPointerType>>,
-    pub reference: Box<SmErr<ReferenceType>>,
-    pub array: Box<SmErr<ArrayType>>,
-    pub slice: Box<SmErr<SliceType>>,
+    pub raw_pointer: Box<SmErr<RawPointerType<T>>>,
+    pub reference: Box<SmErr<ReferenceType<T>>>,
+    pub array: Box<SmErr<ArrayType<T>>>,
+    pub slice: Box<SmErr<SliceType<T>>>,
     pub inferred: SmErr<InferredType>,
-    pub qualified_path: Box<SmErr<QualifiedPathInType>>,
-    pub bare_function: Box<SmErr<BareFunctionType>>,
+    pub qualified_path: Box<SmErr<QualifiedPathInType<T>>>,
+    pub bare_function: Box<SmErr<BareFunctionType<Tokens, PBox<Type<T>>>>>,
     pub macro_invocation: SmErr<MacroInvocation>,
 }
+impl<T: Parsable> Debug for TypeNoBoundsError<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("TypeNoBoundsError")
+            .field("parenthesized", &self.parenthesized)
+            .field("impl_trait_one_bound", &self.impl_trait_one_bound)
+            .field("trait_object_one_bound", &self.trait_object_one_bound)
+            .field("type_path", &self.type_path)
+            .field("tuple", &self.tuple)
+            .field("never", &self.never)
+            .field("raw_pointer", &self.raw_pointer)
+            .field("reference", &self.reference)
+            .field("array", &self.array)
+            .field("slice", &self.slice)
+            .field("inferred", &self.inferred)
+            .field("qualified_path", &self.qualified_path)
+            .field("bare_function", &self.bare_function)
+            .field("macro_invocation", &self.macro_invocation)
+            .finish()
+    }
+}
 
-#[derive(Debug)]
-pub enum TypeNoBounds {
-    Parenthesized(Box<ParenthesizedType>),
-    ImplTraitOneBound(ImplTraitTypeOneBound),
-    TraitObjectOneBound(TraitObjectTypeOneBound),
-    TypePath(TypePath),
-    Tuple(TupleType),
+pub enum TypeNoBounds<T: Parsable> {
+    Parenthesized(Box<ParenthesizedType<T>>),
+    ImplTraitOneBound(ImplTraitTypeOneBound<T>),
+    TraitObjectOneBound(TraitObjectTypeOneBound<T>),
+    TypePath(TypePath<T>),
+    Tuple(TupleType<T>),
     Never(NeverType),
-    RawPointer(Box<RawPointerType>),
-    Reference(Box<ReferenceType>),
-    Array(Box<ArrayType>),
-    Slice(Box<SliceType>),
+    RawPointer(Box<RawPointerType<T>>),
+    Reference(Box<ReferenceType<T>>),
+    Array(Box<ArrayType<T>>),
+    Slice(Box<SliceType<T>>),
     Inferred(InferredType),
-    QualifiedPath(Box<QualifiedPathInType>),
-    BareFunction(Box<BareFunctionType>),
+    QualifiedPath(Box<QualifiedPathInType<T>>),
+    BareFunction(Box<BareFunctionType<T, PBox<Type<T>>>>),
     MacroInvocation(MacroInvocation),
 }
-impl MappedParse for TypeNoBounds {
+impl<T: Parsable> Debug for TypeNoBounds<T>
+where
+    SmOut<T>: Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Parenthesized(arg0) => f.debug_tuple("Parenthesized").field(arg0).finish(),
+            Self::ImplTraitOneBound(arg0) => {
+                f.debug_tuple("ImplTraitOneBound").field(arg0).finish()
+            }
+            Self::TraitObjectOneBound(arg0) => {
+                f.debug_tuple("TraitObjectOneBound").field(arg0).finish()
+            }
+            Self::TypePath(arg0) => f.debug_tuple("TypePath").field(arg0).finish(),
+            Self::Tuple(arg0) => f.debug_tuple("Tuple").field(arg0).finish(),
+            Self::Never(arg0) => f.debug_tuple("Never").field(arg0).finish(),
+            Self::RawPointer(arg0) => f.debug_tuple("RawPointer").field(arg0).finish(),
+            Self::Reference(arg0) => f.debug_tuple("Reference").field(arg0).finish(),
+            Self::Array(arg0) => f.debug_tuple("Array").field(arg0).finish(),
+            Self::Slice(arg0) => f.debug_tuple("Slice").field(arg0).finish(),
+            Self::Inferred(arg0) => f.debug_tuple("Inferred").field(arg0).finish(),
+            Self::QualifiedPath(arg0) => f.debug_tuple("QualifiedPath").field(arg0).finish(),
+            Self::BareFunction(arg0) => f.debug_tuple("BareFunction").field(arg0).finish(),
+            Self::MacroInvocation(arg0) => f.debug_tuple("MacroInvocation").field(arg0).finish(),
+        }
+    }
+}
+impl<T: Parsable> MappedParse for TypeNoBounds<T> {
     type Source = PBox<
         Sum14<
-            ParenthesizedType,
-            ImplTraitTypeOneBound,
-            TraitObjectTypeOneBound,
-            TypePath,
-            TupleType,
+            ParenthesizedType<T>,
+            ImplTraitTypeOneBound<T>,
+            TraitObjectTypeOneBound<T>,
+            TypePath<T>,
+            TupleType<T>,
             NeverType,
-            RawPointerType,
-            ReferenceType,
-            ArrayType,
-            SliceType,
+            RawPointerType<T>,
+            ReferenceType<T>,
+            ArrayType<T>,
+            SliceType<T>,
             InferredType,
-            QualifiedPathInType,
-            BareFunctionType,
+            QualifiedPathInType<T>,
+            BareFunctionType<T, PBox<Type<T>>>,
             MacroInvocation,
         >,
     >;
 
     type Output = Self;
-    type Error = TypeNoBoundsError;
+    type Error = TypeNoBoundsError<T>;
 
     fn map(
         src: SmOut<Self::Source>,
@@ -145,10 +203,17 @@ impl MappedParse for TypeNoBounds {
     }
 }
 
-#[derive(Debug)]
-pub struct ParenthesizedType(pub Type);
-impl MappedParse for ParenthesizedType {
-    type Source = Paren<Type>;
+pub struct ParenthesizedType<T: Parsable>(pub Type<T>);
+impl<T: Parsable> Debug for ParenthesizedType<T>
+where
+    SmOut<T>: Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("ParenthesizedType").field(&self.0).finish()
+    }
+}
+impl<T: Parsable> MappedParse for ParenthesizedType<T> {
+    type Source = Paren<Type<T>>;
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -156,7 +221,7 @@ impl MappedParse for ParenthesizedType {
     fn map(
         src: SmOut<Self::Source>,
     ) -> Result<<Self as MappedParse>::Output, <Self as MappedParse>::Error> {
-        Ok(Self(src))
+        Ok(Self(src.0))
     }
 
     fn map_err(src: SmErr<Self::Source>) -> <Self as MappedParse>::Error {
@@ -166,10 +231,17 @@ impl MappedParse for ParenthesizedType {
 
 pub type InferredType = Underscore;
 
-#[derive(Debug)]
-pub struct SliceType(pub Type);
-impl MappedParse for SliceType {
-    type Source = Bracket<Type>;
+pub struct SliceType<T: Parsable>(pub Type<T>);
+impl<T: Parsable> Debug for SliceType<T>
+where
+    SmOut<T>: Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("SliceType").field(&self.0).finish()
+    }
+}
+impl<T: Parsable> MappedParse for SliceType<T> {
+    type Source = Bracket<Type<T>>;
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -177,7 +249,7 @@ impl MappedParse for SliceType {
     fn map(
         src: SmOut<Self::Source>,
     ) -> Result<<Self as MappedParse>::Output, <Self as MappedParse>::Error> {
-        Ok(Self(src))
+        Ok(Self(src.0))
     }
 
     fn map_err(src: SmErr<Self::Source>) -> <Self as MappedParse>::Error {
@@ -185,12 +257,22 @@ impl MappedParse for SliceType {
     }
 }
 
-#[derive(Debug)]
-pub struct ArrayType {
-    pub ty: Type,
+pub struct ArrayType<T: Parsable> {
+    pub ty: Type<T>,
     pub expr: Expression, // TODO
 }
-impl MappedParse for ArrayType {
+impl<T: Parsable> Debug for ArrayType<T>
+where
+    SmOut<T>: Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ArrayType")
+            .field("ty", &self.ty)
+            .field("expr", &self.expr)
+            .finish()
+    }
+}
+impl<T: Parsable> MappedParse for ArrayType<T> {
     type Source = std::convert::Infallible;
 
     type Output = Self;
@@ -207,13 +289,23 @@ impl MappedParse for ArrayType {
     }
 }
 
-#[derive(Debug)]
-pub struct ReferenceType {
+pub struct ReferenceType<T: Parsable> {
     pub is_mut: bool,
-    pub inner: TypeNoBounds,
+    pub inner: TypeNoBounds<T>,
 }
-impl MappedParse for ReferenceType {
-    type Source = (Amp, Option<KwMut>, TypeNoBounds);
+impl<T: Parsable> Debug for ReferenceType<T>
+where
+    SmOut<T>: Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ReferenceType")
+            .field("is_mut", &self.is_mut)
+            .field("inner", &self.inner)
+            .finish()
+    }
+}
+impl<T: Parsable> MappedParse for ReferenceType<T> {
+    type Source = (Amp, Option<KwMut>, TypeNoBounds<T>);
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -232,13 +324,23 @@ impl MappedParse for ReferenceType {
     }
 }
 
-#[derive(Debug)]
-pub struct RawPointerType {
+pub struct RawPointerType<T: Parsable> {
     pub is_mut: bool,
-    pub inner: TypeNoBounds,
+    pub inner: TypeNoBounds<T>,
 }
-impl MappedParse for RawPointerType {
-    type Source = (Star, Option<KwMut>, TypeNoBounds);
+impl<T: Parsable> Debug for RawPointerType<T>
+where
+    SmOut<T>: Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("RawPointerType")
+            .field("is_mut", &self.is_mut)
+            .field("inner", &self.inner)
+            .finish()
+    }
+}
+impl<T: Parsable> MappedParse for RawPointerType<T> {
+    type Source = (Star, Option<KwMut>, TypeNoBounds<T>);
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -259,10 +361,18 @@ impl MappedParse for RawPointerType {
 
 pub type NeverType = Exclamation;
 
-#[derive(Debug)]
-pub struct TupleType(pub Vec<Type>);
-impl MappedParse for TupleType {
-    type Source = Paren<Sum2<MinLength<InterlaceTrail<Type, Comma>, 2>, Option<(Type, Comma)>>>;
+pub struct TupleType<T: Parsable>(pub Vec<Type<T>>);
+impl<T: Parsable> Debug for TupleType<T>
+where
+    SmOut<T>: Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("TupleType").field(&self.0).finish()
+    }
+}
+impl<T: Parsable> MappedParse for TupleType<T> {
+    type Source =
+        Paren<Sum2<MinLength<InterlaceTrail<Type<T>, Comma>, 2>, Option<(Type<T>, Comma)>>>;
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -270,7 +380,7 @@ impl MappedParse for TupleType {
     fn map(
         src: SmOut<Self::Source>,
     ) -> Result<<Self as MappedParse>::Output, <Self as MappedParse>::Error> {
-        Ok(Self(match src {
+        Ok(Self(match src.0 {
             Sum2::Val0(a) => a.0,
             Sum2::Val1(Some(a)) => vec![a.0],
             Sum2::Val1(None) => Vec::new(),
@@ -290,7 +400,9 @@ mod tests {
 
     #[test]
     pub fn sm_size_prune() {
-        dbg!(std::mem::size_of::<<Type as Parsable>::StateMachine>());
+        dbg!(std::mem::size_of::<
+            <Type<Infallible> as Parsable>::StateMachine,
+        >());
     }
 
     // The primary issue for type matching is stack-overflows. This is me trying to avoid this.
@@ -303,7 +415,7 @@ mod tests {
                     src = quote!(Box < #src >);
                 }
 
-                parse_terminal::<Type>(src).is_ok()
+                parse_terminal::<Type<Infallible>>(src).is_ok()
             });
             let thread = thread.join();
 
@@ -312,28 +424,28 @@ mod tests {
         }
     }
 
-    insta_match_test!(it_matches_type_impl, Type: impl Hi);
-    insta_match_test!(it_matches_type_dyn, Type: dyn Hi);
-    insta_match_test!(it_matches_type_direct, Type: u16);
-    insta_match_test!(it_matches_type_path, Type: hello::World);
+    insta_match_test!(it_matches_type_impl, Type<Infallible>: impl Hi);
+    insta_match_test!(it_matches_type_dyn, Type<Infallible>: dyn Hi);
+    insta_match_test!(it_matches_type_direct, Type<Infallible>: u16);
+    insta_match_test!(it_matches_type_path, Type<Infallible>: hello::World);
 
-    insta_match_test!(it_matches_paren_type, ParenthesizedType: u16);
+    insta_match_test!(it_matches_paren_type, ParenthesizedType<Infallible>: u16);
 
-    insta_match_test!(it_matches_tuple_type_unit, TupleType: ());
-    insta_match_test!(it_matches_tuple_type_single, TupleType: (Hello,));
-    insta_match_test!(it_matches_tuple_type_duo, TupleType: (Hello, World));
-    insta_match_test!(it_matches_tuple_type_duo_trail, TupleType: (Hello, World,));
+    insta_match_test!(it_matches_tuple_type_unit, TupleType<Infallible>: ());
+    insta_match_test!(it_matches_tuple_type_single, TupleType<Infallible>: (Hello,));
+    insta_match_test!(it_matches_tuple_type_duo, TupleType<Infallible>: (Hello, World));
+    insta_match_test!(it_matches_tuple_type_duo_trail, TupleType<Infallible>: (Hello, World,));
 
-    insta_match_test!(it_matches_raw_pointer_type, RawPointerType: *hello);
-    insta_match_test!(it_matches_raw_pointer_type_mut, RawPointerType: *mut hello);
+    insta_match_test!(it_matches_raw_pointer_type, RawPointerType<Infallible>: *hello);
+    insta_match_test!(it_matches_raw_pointer_type_mut, RawPointerType<Infallible>: *mut hello);
 
-    insta_match_test!(it_matches_reference, ReferenceType: &hello);
-    insta_match_test!(it_matches_reference_mut, ReferenceType: &mut hello);
+    insta_match_test!(it_matches_reference, ReferenceType<Infallible>: &hello);
+    insta_match_test!(it_matches_reference_mut, ReferenceType<Infallible>: &mut hello);
 
     #[cfg(disable)]
-    insta_match_test!(it_matches_array_type, ArrayType: [i64; 10]);
+    insta_match_test!(it_matches_array_type, ArrayType<Infallible>: [i64; 10]);
 
-    insta_match_test!(it_matches_slice_type, SliceType: [i64]);
+    insta_match_test!(it_matches_slice_type, SliceType<Infallible>: [i64]);
 
     insta_match_test!(it_matches_never, NeverType: !);
     insta_match_test!(it_matches_inferred, InferredType: _);

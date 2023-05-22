@@ -78,7 +78,8 @@ pub enum SpecifiedGroupError<T: std::error::Error> {
 
 macro_rules! specified_group {
     ($name:ident, $machine:ident, $delim_ty: path) => {
-        pub struct $name<T: Parsable>(PhantomData<T>);
+        #[derive(Debug)]
+        pub struct $name<T>(pub T);
 
         impl<T: Parsable> Parsable for $name<T> {
             type StateMachine = $machine<T>;
@@ -92,7 +93,7 @@ macro_rules! specified_group {
         }
 
         impl<T: Parsable> StateMachine for $machine<T> {
-            type Output = SmOut<T>;
+            type Output = $name<SmOut<T>>;
             type Error = SpecifiedGroupError<TerminalError<SmErr<T>>>;
 
             fn drive(
@@ -103,7 +104,7 @@ macro_rules! specified_group {
                     TokenTree::Group(g) => {
                         if g.delimiter() == $delim_ty {
                             match parse_terminal::<T>(g.stream()) {
-                                Ok(a) => Ok((a, 0)),
+                                Ok(a) => Ok(($name(a), 0)),
                                 Err(e) => Err(SpecifiedGroupError::NestedError(e)),
                             }
                         } else {

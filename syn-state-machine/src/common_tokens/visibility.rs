@@ -30,7 +30,7 @@ impl MappedParse for Visibility {
             Sum5::Val0(_) => Self::PubCrate,
             Sum5::Val1(_) => Self::PubSelf,
             Sum5::Val2(_) => Self::PubSuper,
-            Sum5::Val3((_, (_, a))) => Self::PubIn(a),
+            Sum5::Val3((_, Paren((_, a)))) => Self::PubIn(a),
             Sum5::Val4(_) => Self::Pub,
         })
     }

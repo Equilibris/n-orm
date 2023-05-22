@@ -10,7 +10,7 @@ impl Parsable for IdentifierOrUnder {
             Sum2<
                 super::keyword::Keyword,
                 Sum2<
-                    Sum2<FIdent<"r#crate">, FIdent<"r#super">>,
+                    Sum2<FIdent<"#crate">, FIdent<"r#super">>,
                     Sum2<FIdent<"r#self">, FIdent<"r#Self">>,
                 >,
             >,

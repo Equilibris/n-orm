@@ -47,9 +47,9 @@ impl MappedParse for MacroInvocationSemi {
             path: src.0,
             content: match src.1 {
                 Sum2::Val0(a) => match a.0 {
-                    Sum2::Val0(a) | Sum2::Val1(a) => a,
+                    Sum2::Val0(Paren(a)) | Sum2::Val1(Bracket(a)) => a,
                 },
-                Sum2::Val1(a) => a,
+                Sum2::Val1(Brace(a)) => a,
             },
         })
     }

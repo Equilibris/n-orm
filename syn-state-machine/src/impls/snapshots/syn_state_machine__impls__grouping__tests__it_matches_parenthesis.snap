@@ -8,8 +8,10 @@ Ok(
             Ident(
                 hello,
             ),
-            Ident(
-                world,
+            Paren(
+                Ident(
+                    world,
+                ),
             ),
             Ident(
                 hi,

@@ -2,12 +2,12 @@ use super::*;
 use crate::*;
 use std::fmt::Debug;
 
-pub type AssociateItems<T = Tokens> = Vec<AssociateItem<T>>;
+pub type AssociateItems<T> = Vec<AssociateItem<T>>;
 
-pub enum AssociateItem<T: Parsable = Tokens> {
+pub enum AssociateItem<T: Parsable> {
     MacroInvocation(Attrs<T>, MacroInvocationSemi),
-    TypeAlias(Attrs<T>, Option<Visibility>, TypeAlias),
-    ConstantItem(Attrs<T>, Option<Visibility>, ConstantItem),
+    TypeAlias(Attrs<T>, Option<Visibility>, TypeAlias<T>),
+    ConstantItem(Attrs<T>, Option<Visibility>, ConstantItem<T>),
     Function(Attrs<T>, Option<Visibility>, Function<T>),
 }
 impl<T: Parsable> MappedParse for AssociateItem<T> {
@@ -17,7 +17,7 @@ impl<T: Parsable> MappedParse for AssociateItem<T> {
             MacroInvocationSemi,
             (
                 Option<Visibility>,
-                Sum3<MBox<TypeAlias>, MBox<ConstantItem>, MBox<Function<T>>>,
+                Sum3<MBox<TypeAlias<T>>, MBox<ConstantItem<T>>, MBox<Function<T>>>,
             ),
         >,
     >;
@@ -77,10 +77,4 @@ where
 mod tests {
     use super::*;
     use crate::insta_match_test;
-
-    #[test]
-    pub fn sm_size_prune() {
-        dbg!(std::mem::size_of::<<AssociateItem as Parsable>::StateMachine>());
-        dbg!(std::mem::size_of::<<Function as Parsable>::StateMachine>());
-    }
 }

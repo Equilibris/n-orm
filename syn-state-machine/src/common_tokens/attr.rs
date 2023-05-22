@@ -24,7 +24,7 @@ impl<T: Parsable> MappedParse for OuterAttr<T> {
     type Error = SmErr<Self::Source>;
 
     fn map(src: SmOut<<Self as MappedParse>::Source>) -> Result<Self::Output, Self::Error> {
-        Ok(Self(src.1))
+        Ok(Self(src.1 .0))
     }
 
     fn map_err(src: SmErr<<Self as MappedParse>::Source>) -> Self::Error {
@@ -46,7 +46,7 @@ impl<T: Parsable> MappedParse for InnerAttr<T> {
     type Error = SmErr<Self::Source>;
 
     fn map(src: SmOut<<Self as MappedParse>::Source>) -> Result<Self::Output, Self::Error> {
-        Ok(Self(src.2))
+        Ok(Self(src.2 .0))
     }
 
     fn map_err(src: SmErr<<Self as MappedParse>::Source>) -> Self::Error {

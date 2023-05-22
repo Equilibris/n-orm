@@ -2,32 +2,46 @@ mod attr;
 mod bounds;
 mod constant_items;
 mod enumerations;
+mod implementatins;
 mod static_items;
 mod structs;
 mod traits;
 mod unions;
-mod implementatins {
+mod external_blocks {
     use super::*;
     use crate::*;
     use std::fmt::Debug;
 
-    pub enum Implementation<T: Parsable = Tokens> {
-        Inherent(InherentImpl<T>),
-        Trait(TraitImpl<T>),
+    pub enum ExternalItem<T: Parsable> {
+        Macro(Attrs<T>, MacroInvocationSemi),
+        Static(Attrs<T>, Option<Visibility>, StaticItem<T>),
+        Function(Attrs<T>, Option<Visibility>, Function<T>),
     }
-    impl<T: Parsable> Debug for Implementation<T>
+
+    impl<T: Parsable> Debug for ExternalItem<T>
     where
         SmOut<T>: Debug,
     {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
             match self {
-                Self::Inherent(arg0) => f.debug_tuple("Inherent").field(arg0).finish(),
-                Self::Trait(arg0) => f.debug_tuple("Trait").field(arg0).finish(),
+                Self::Macro(arg0, arg1) => f.debug_tuple("Macro").field(arg0).field(arg1).finish(),
+                Self::Static(arg0, arg1, arg2) => f
+                    .debug_tuple("Static")
+                    .field(arg0)
+                    .field(arg1)
+                    .field(arg2)
+                    .finish(),
+                Self::Function(arg0, arg1, arg2) => f
+                    .debug_tuple("Function")
+                    .field(arg0)
+                    .field(arg1)
+                    .field(arg2)
+                    .finish(),
             }
         }
     }
-    impl<T: Parsable> MappedParse for Implementation<T> {
-        type Source = Sum2<InherentImpl<T>, TraitImpl<T>>;
+    impl<T: Parsable> MappedParse for ExternalItem<T> {
+        type Source = ();
 
         type Output = Self;
         type Error = SmErr<Self::Source>;
@@ -35,161 +49,13 @@ mod implementatins {
         fn map(
             src: SmOut<Self::Source>,
         ) -> Result<<Self as MappedParse>::Output, <Self as MappedParse>::Error> {
-            Ok(match src {
-                Sum2::Val0(a) => Self::Inherent(a),
-                Sum2::Val1(a) => Self::Trait(a),
-            })
+            todo!()
         }
 
         fn map_err(src: SmErr<Self::Source>) -> <Self as MappedParse>::Error {
             src
         }
     }
-
-    pub struct TraitImpl<T: Parsable = Tokens> {
-        pub r#unsafe: bool,
-        pub genetic_params: Option<GenericParams>,
-        pub where_clause: Option<WhereClause>,
-        pub neg: bool,
-        pub r#trait: TypePath,
-        pub ty: Type,
-
-        pub attrs: InnerAttrs<T>,
-        pub items: AssociateItems<T>,
-    }
-
-    impl<T: Parsable> Debug for TraitImpl<T>
-    where
-        SmOut<T>: Debug,
-    {
-        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-            f.debug_struct("TraitImpl")
-                .field("r#unsafe", &self.r#unsafe)
-                .field("genetic_params", &self.genetic_params)
-                .field("neg", &self.neg)
-                .field("r#trait", &self.r#trait)
-                .field("ty", &self.ty)
-                .field("attrs", &self.attrs)
-                .field("items", &self.items)
-                .finish()
-        }
-    }
-    impl<T: Parsable> MappedParse for TraitImpl<T> {
-        type Source = (
-            Option<KwUnsafe>,
-            KwImpl,
-            Option<MBox<GenericParams>>,
-            Option<Exclamation>,
-            MBox<TypePath>,
-            KwFor,
-            MBox<Type>,
-            Option<WhereClause>,
-            Brace<WithInnerAttrs<T, AssociateItems<T>>>,
-        );
-
-        type Output = Self;
-        type Error = SmErr<Self::Source>;
-
-        fn map(
-            src: SmOut<Self::Source>,
-        ) -> Result<<Self as MappedParse>::Output, <Self as MappedParse>::Error> {
-            Ok(Self {
-                r#unsafe: src.0.is_some(),
-                genetic_params: src.2,
-                where_clause: src.7,
-                neg: src.3.is_some(),
-                r#trait: src.4,
-                ty: src.6,
-                attrs: src.8 .0,
-                items: src.8 .1,
-            })
-        }
-
-        fn map_err(src: SmErr<Self::Source>) -> <Self as MappedParse>::Error {
-            src
-        }
-    }
-
-    pub struct InherentImpl<T: Parsable = Tokens> {
-        genetic_params: Option<GenericParams>,
-        ty: Type,
-        where_clause: Option<WhereClause>,
-
-        attrs: InnerAttrs<T>,
-        items: AssociateItems<T>,
-    }
-    impl<T: Parsable> MappedParse for InherentImpl<T> {
-        type Source = (
-            KwImpl,
-            Option<GenericParams>,
-            Type,
-            Option<WhereClause>,
-            Brace<WithInnerAttrs<T, AssociateItems<T>>>,
-        );
-
-        type Output = Self;
-        type Error = SmErr<Self::Source>;
-
-        fn map(
-            src: SmOut<Self::Source>,
-        ) -> Result<<Self as MappedParse>::Output, <Self as MappedParse>::Error> {
-            Ok(Self {
-                genetic_params: src.1,
-                ty: src.2,
-                where_clause: src.3,
-                attrs: src.4 .0,
-                items: src.4 .1,
-            })
-        }
-
-        fn map_err(src: SmErr<Self::Source>) -> <Self as MappedParse>::Error {
-            src
-        }
-    }
-    impl<T: Parsable> Debug for InherentImpl<T>
-    where
-        SmOut<T>: Debug,
-    {
-        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-            f.debug_struct("InherentImpl")
-                .field("genetic_params", &self.genetic_params)
-                .field("ty", &self.ty)
-                .field("where_clause", &self.where_clause)
-                .field("attrs", &self.attrs)
-                .field("items", &self.items)
-                .finish()
-        }
-    }
-
-    #[cfg(test)]
-    mod tests {
-        use super::*;
-        use crate::insta_match_test;
-
-        #[test]
-        pub fn sm_size_prune() {
-            dbg!(std::mem::size_of::<
-                <Implementation as Parsable>::StateMachine,
-            >());
-        }
-        insta_match_test!(
-            it_matches_simple_inherent, Implementation :
-
-            impl<T> Option<T> {
-                pub fn is_some(&self) -> bool;
-            }
-        );
-        insta_match_test!(
-            it_matches_simple_trait, Implementation :
-
-            unsafe impl<T: Copy> Copy for Option<T> {}
-        );
-    }
-}
-mod external_blocks {
-    use super::*;
-    use crate::*;
-    use std::fmt::Debug;
 
     #[cfg(test)]
     mod tests {

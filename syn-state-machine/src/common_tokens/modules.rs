@@ -1,7 +1,7 @@
 use super::*;
 use crate::*;
 
-pub enum Module<Content: Parsable = Tokens, Inner: Parsable = Tokens> {
+pub enum Module<Content: Parsable, Inner: Parsable> {
     Extern {
         id: Ident,
         r#unsafe: bool,
@@ -32,7 +32,7 @@ impl<Content: Parsable, Inner: Parsable> MappedParse for Module<Content, Inner> 
         let r#unsafe = src.0.is_some();
         let id = src.2;
         Ok(match src.3 {
-            Sum2::Val0((inner_attrs, content)) => Self::Inline {
+            Sum2::Val0(Brace((inner_attrs, content))) => Self::Inline {
                 id,
 
                 r#unsafe,
