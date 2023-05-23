@@ -1,6 +1,6 @@
 ---
 source: syn-state-machine/src/common_tokens/structs.rs
-expression: "crate::parse::<Struct>(::quote::quote! { struct Unit ; })"
+expression: "crate::parse::<Struct<Infallible,\n        std::convert::Infallible>>(::quote::quote! { struct Unit ; })"
 ---
 Ok(
     (

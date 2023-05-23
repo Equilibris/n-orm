@@ -1,6 +1,6 @@
 ---
 source: syn-state-machine/src/common_tokens/type_alias.rs
-expression: "crate::parse::<TypeAlias>(::quote::quote! {\n            type Point < T > where T : std :: ops :: Add = (T, T) ;\n        })"
+expression: "crate::parse::<TypeAlias<Infallible,\n        common_tokens::Type<Infallible>>>(::quote::quote! {\n            type Point < T > where T : std :: ops :: Add = (T, T) ;\n        })"
 ---
 Ok(
     (

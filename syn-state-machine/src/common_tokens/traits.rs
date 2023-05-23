@@ -2,7 +2,7 @@ use super::*;
 use crate::*;
 use std::fmt::Debug;
 
-pub struct Trait<T: Parsable> {
+pub struct Trait<T: Parsable, Ty: Parsable> {
     pub r#unsafe: bool,
 
     pub id: Ident,
@@ -11,9 +11,9 @@ pub struct Trait<T: Parsable> {
     pub where_clause: Option<WhereClause<T>>,
 
     pub attrs: InnerAttrs<T>,
-    pub associate_items: AssociateItems<T>,
+    pub associate_items: AssociateItems<T, Ty>,
 }
-impl<T: Parsable> MappedParse for Trait<T> {
+impl<T: Parsable, Ty: Parsable> MappedParse for Trait<T, Ty> {
     type Source = (
         Option<KwUnsafe>,
         KwTrait,
@@ -21,7 +21,7 @@ impl<T: Parsable> MappedParse for Trait<T> {
         Option<GenericParams<T>>,
         Option<(Colon, Option<TypeParamBounds<T>>)>,
         Option<WhereClause<T>>,
-        Brace<WithInnerAttrs<T, AssociateItems<T>>>,
+        Brace<WithInnerAttrs<T, AssociateItems<T, Ty>>>,
     );
 
     type Output = Self;
@@ -45,9 +45,10 @@ impl<T: Parsable> MappedParse for Trait<T> {
         src
     }
 }
-impl<T: Parsable> Debug for Trait<T>
+impl<T: Parsable, Ty: Parsable> Debug for Trait<T, Ty>
 where
     SmOut<T>: Debug,
+    SmOut<Ty>: Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Trait")
@@ -68,7 +69,7 @@ mod tests {
     use crate::insta_match_test;
 
     insta_match_test!(
-        it_matches_trait, Trait <Infallible>:
+        it_matches_trait, Trait <Infallible, MBox<Type<Infallible>>>:
         unsafe trait HelloWorld<T> : From<T> where T: Sized {
             type Hello: World;
         }

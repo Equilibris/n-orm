@@ -3,13 +3,13 @@ use std::fmt::Debug;
 use super::*;
 use crate::*;
 
-pub enum Struct<T: Parsable> {
+pub enum Struct<T: Parsable, Ty: Parsable> {
     Unit(UnitStruct),
-    Block(BlockStruct<T>),
-    Tuple(TupleStruct<T>),
+    Block(BlockStruct<T, Ty>),
+    Tuple(TupleStruct<T, Ty>),
 }
-impl<T: Parsable> MappedParse for Struct<T> {
-    type Source = Sum3<BlockStruct<T>, TupleStruct<T>, UnitStruct>;
+impl<T: Parsable, Ty: Parsable> MappedParse for Struct<T, Ty> {
+    type Source = Sum3<BlockStruct<T, Ty>, TupleStruct<T, Ty>, UnitStruct>;
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -28,9 +28,10 @@ impl<T: Parsable> MappedParse for Struct<T> {
         src
     }
 }
-impl<T: Parsable> Debug for Struct<T>
+impl<T: Parsable, Ty: Parsable> Debug for Struct<T, Ty>
 where
     SmOut<T>: Debug,
+    SmOut<Ty>: Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -41,12 +42,12 @@ where
     }
 }
 
-pub enum StructStruct<T: Parsable> {
+pub enum StructStruct<T: Parsable, Ty: Parsable> {
     Unit(UnitStruct),
-    Block(BlockStruct<T>),
+    Block(BlockStruct<T, Ty>),
 }
-impl<T: Parsable> MappedParse for StructStruct<T> {
-    type Source = Sum2<BlockStruct<T>, UnitStruct>;
+impl<T: Parsable, Ty: Parsable> MappedParse for StructStruct<T, Ty> {
+    type Source = Sum2<BlockStruct<T, Ty>, UnitStruct>;
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -64,9 +65,10 @@ impl<T: Parsable> MappedParse for StructStruct<T> {
         src
     }
 }
-impl<T: Parsable> Debug for StructStruct<T>
+impl<T: Parsable, Ty: Parsable> Debug for StructStruct<T, Ty>
 where
     SmOut<T>: Debug,
+    SmOut<Ty>: Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -95,15 +97,16 @@ impl MappedParse for UnitStruct {
     }
 }
 
-pub struct BlockStruct<T: Parsable> {
+pub struct BlockStruct<T: Parsable, Ty: Parsable> {
     pub id: Ident,
     pub params: Option<GenericParams<T>>,
-    pub fields: StructFields<T>,
+    pub fields: StructFields<T, Ty>,
     pub where_clause: Option<WhereClause<T>>,
 }
-impl<T: Parsable> Debug for BlockStruct<T>
+impl<T: Parsable, Ty: Parsable> Debug for BlockStruct<T, Ty>
 where
     SmOut<T>: Debug,
+    SmOut<Ty>: Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("BlockStruct")
@@ -114,13 +117,13 @@ where
             .finish()
     }
 }
-impl<T: Parsable> MappedParse for BlockStruct<T> {
+impl<T: Parsable, Ty: Parsable> MappedParse for BlockStruct<T, Ty> {
     type Source = (
         KwStruct,
         Identifier,
         Option<GenericParams<T>>,
         Option<WhereClause<T>>,
-        Brace<StructFields<T>>,
+        Brace<StructFields<T, Ty>>,
     );
 
     type Output = Self;
@@ -142,15 +145,16 @@ impl<T: Parsable> MappedParse for BlockStruct<T> {
     }
 }
 
-pub struct TupleStruct<T: Parsable> {
+pub struct TupleStruct<T: Parsable, Ty: Parsable> {
     pub id: Ident,
     pub params: Option<GenericParams<T>>,
-    pub fields: TupleFields<T>,
+    pub fields: TupleFields<T, Ty>,
     pub where_clause: Option<WhereClause<T>>,
 }
-impl<T: Parsable> Debug for TupleStruct<T>
+impl<T: Parsable, Ty: Parsable> Debug for TupleStruct<T, Ty>
 where
     SmOut<T>: Debug,
+    SmOut<Ty>: Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("TupleStruct")
@@ -161,12 +165,12 @@ where
             .finish()
     }
 }
-impl<T: Parsable> MappedParse for TupleStruct<T> {
+impl<T: Parsable, Ty: Parsable> MappedParse for TupleStruct<T, Ty> {
     type Source = (
         KwStruct,
         Identifier,
         Option<GenericParams<T>>,
-        Paren<TupleFields<T>>,
+        Paren<TupleFields<T, Ty>>,
         Option<WhereClause<T>>,
         Semi,
     );
@@ -191,17 +195,17 @@ impl<T: Parsable> MappedParse for TupleStruct<T> {
 }
 
 // These are marginally incorrect but in practice it can simply be fixed with a min-length
-pub type TupleFields<T> = InterlaceTrail<TupleField<T>, Comma>;
-pub type StructFields<T> = InterlaceTrail<StructField<T>, Comma>;
+pub type TupleFields<T, Ty> = InterlaceTrail<TupleField<T, Ty>, Comma>;
+pub type StructFields<T, Ty> = InterlaceTrail<StructField<T, Ty>, Comma>;
 
-pub struct StructField<T: Parsable> {
+pub struct StructField<T: Parsable, Ty: Parsable> {
     pub attr: Attrs<T>,
     pub vis: Option<Visibility>,
     pub id: Ident,
-    pub ty: Type<T>,
+    pub ty: SmOut<Ty>,
 }
-impl<T: Parsable> MappedParse for StructField<T> {
-    type Source = (Attrs<T>, Option<Visibility>, Identifier, Colon, Type<T>);
+impl<T: Parsable, Ty: Parsable> MappedParse for StructField<T, Ty> {
+    type Source = (Attrs<T>, Option<Visibility>, Identifier, Colon, Ty);
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -221,8 +225,9 @@ impl<T: Parsable> MappedParse for StructField<T> {
         src
     }
 }
-impl<T: Parsable> Debug for StructField<T>
+impl<T: Parsable, Ty: Parsable> Debug for StructField<T, Ty>
 where
+    SmOut<Ty>: Debug,
     SmOut<T>: Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -235,13 +240,13 @@ where
     }
 }
 
-pub struct TupleField<T: Parsable> {
+pub struct TupleField<T: Parsable, Ty: Parsable> {
     pub attr: Attrs<T>,
     pub vis: Option<Visibility>,
-    pub ty: Type<T>,
+    pub ty: SmOut<Ty>,
 }
-impl<T: Parsable> MappedParse for TupleField<T> {
-    type Source = (Attrs<T>, Option<Visibility>, Type<T>);
+impl<T: Parsable, Ty: Parsable> MappedParse for TupleField<T, Ty> {
+    type Source = (Attrs<T>, Option<Visibility>, Ty);
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -261,9 +266,10 @@ impl<T: Parsable> MappedParse for TupleField<T> {
     }
 }
 
-impl<T: Parsable> Debug for TupleField<T>
+impl<T: Parsable, Ty: Parsable> Debug for TupleField<T, Ty>
 where
     SmOut<T>: Debug,
+    SmOut<Ty>: Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("TupleField")
@@ -279,7 +285,7 @@ mod tests {
     use super::*;
     use crate::insta_match_test;
 
-    insta_match_test!(it_matches_unit, Struct<Infallible>: struct Unit;);
-    insta_match_test!(it_matches_tuple, Struct<Infallible>: struct Point<T> (T,T) where T: std::ops::Add<Other = T>;);
-    insta_match_test!(it_matches_struct, Struct<Infallible>: struct Point<T> where T: Hi { pub v0: T, pub v1: T });
+    insta_match_test!(it_matches_unit, Struct<Infallible,std::convert::Infallible>: struct Unit;);
+    insta_match_test!(it_matches_tuple, Struct<Infallible,Ident>: struct Point<T> (T,T) where T: std::ops::Add<Other = T>;);
+    insta_match_test!(it_matches_struct, Struct<Infallible,Ident>: struct Point<T> where T: Hi { pub v0: T, pub v1: T });
 }

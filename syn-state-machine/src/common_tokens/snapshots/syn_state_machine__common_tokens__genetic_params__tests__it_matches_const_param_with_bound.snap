@@ -1,6 +1,6 @@
 ---
 source: syn-state-machine/src/common_tokens/genetic_params.rs
-expression: "crate::parse::<ConstParam>(::quote::quote! { const HELLO : i8 = 10 })"
+expression: "crate::parse::<ConstParam<Infallible>>(::quote::quote! {\n            const HELLO : i8 = 10\n        })"
 ---
 Ok(
     (

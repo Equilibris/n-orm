@@ -2,18 +2,19 @@ use super::*;
 use crate::*;
 use std::fmt::Debug;
 
-pub struct TypeAlias<T: Parsable> {
+pub struct TypeAlias<T: Parsable, Ty: Parsable> {
     pub id: Ident,
     pub params: Option<GenericParams<T>>,
     pub bounds: Option<TypeParamBounds<T>>,
     pub pre_where_clause: Option<WhereClause<T>>,
 
-    pub ty: Option<Type<T>>,
+    pub ty: Option<SmOut<Ty>>,
     pub post_where_clause: Option<WhereClause<T>>,
 }
-impl<T: Parsable> Debug for TypeAlias<T>
+impl<T: Parsable, Ty: Parsable> Debug for TypeAlias<T, Ty>
 where
     SmOut<T>: Debug,
+    SmOut<Ty>: Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("TypeAlias")
@@ -26,14 +27,14 @@ where
             .finish()
     }
 }
-impl<T: Parsable> MappedParse for TypeAlias<T> {
+impl<T: Parsable, Ty: Parsable> MappedParse for TypeAlias<T, Ty> {
     type Source = (
         KwType,
         Identifier,
         Option<GenericParams<T>>,
         Option<(Colon, TypeParamBounds<T>)>,
         Option<WhereClause<T>>,
-        Option<(Eq, Type<T>, Option<WhereClause<T>>)>,
+        Option<(Eq, Ty, Option<WhereClause<T>>)>,
         Semi,
     );
 
@@ -65,10 +66,10 @@ impl<T: Parsable> MappedParse for TypeAlias<T> {
 
 #[cfg(test)]
 mod tests {
-    use super::TypeAlias;
-    use crate::insta_match_test;
+    use super::*;
+    use crate::*;
     use std::convert::Infallible;
 
-    insta_match_test!(it_matches_simple, TypeAlias<Infallible>: type Point = (u8, u8););
-    insta_match_test!(it_matches_complex, TypeAlias<Infallible>: type Point<T> where T: std::ops::Add = (T, T););
+    insta_match_test!(it_matches_simple, TypeAlias<Infallible, Ident>: type Point = (u8, u8););
+    insta_match_test!(it_matches_complex, TypeAlias<Infallible, common_tokens::Type<Infallible>>: type Point<T> where T: std::ops::Add = (T, T););
 }

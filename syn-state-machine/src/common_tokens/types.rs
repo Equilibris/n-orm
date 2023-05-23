@@ -324,23 +324,25 @@ impl<T: Parsable> MappedParse for ReferenceType<T> {
     }
 }
 
-pub struct RawPointerType<T: Parsable> {
-    pub is_mut: bool,
-    pub inner: TypeNoBounds<T>,
+pub enum RawPointerType<T: Parsable> {
+    Simple(TypeNoBounds<T>),
+    Const(TypeNoBounds<T>),
+    Mut(TypeNoBounds<T>),
 }
 impl<T: Parsable> Debug for RawPointerType<T>
 where
     SmOut<T>: Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("RawPointerType")
-            .field("is_mut", &self.is_mut)
-            .field("inner", &self.inner)
-            .finish()
+        match self {
+            Self::Simple(arg0) => f.debug_tuple("Simple").field(arg0).finish(),
+            Self::Const(arg0) => f.debug_tuple("Const").field(arg0).finish(),
+            Self::Mut(arg0) => f.debug_tuple("Mut").field(arg0).finish(),
+        }
     }
 }
 impl<T: Parsable> MappedParse for RawPointerType<T> {
-    type Source = (Star, Option<KwMut>, TypeNoBounds<T>);
+    type Source = (Star, Option<Sum2<KwMut, KwConst>>, TypeNoBounds<T>);
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -348,9 +350,10 @@ impl<T: Parsable> MappedParse for RawPointerType<T> {
     fn map(
         src: SmOut<Self::Source>,
     ) -> Result<<Self as MappedParse>::Output, <Self as MappedParse>::Error> {
-        Ok(Self {
-            is_mut: src.1.is_some(),
-            inner: src.2,
+        Ok(match src.1 {
+            Some(Sum2::Val0(_)) => Self::Mut(src.2),
+            Some(Sum2::Val1(_)) => Self::Const(src.2),
+            None => Self::Simple(src.2),
         })
     }
 

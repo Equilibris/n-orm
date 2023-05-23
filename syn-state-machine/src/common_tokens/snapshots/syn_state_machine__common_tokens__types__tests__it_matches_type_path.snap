@@ -1,6 +1,6 @@
 ---
 source: syn-state-machine/src/common_tokens/types.rs
-expression: "crate::parse::<Type>(::quote::quote! { hello :: World })"
+expression: "crate::parse::<Type<Infallible>>(::quote::quote! { hello :: World })"
 ---
 Ok(
     (

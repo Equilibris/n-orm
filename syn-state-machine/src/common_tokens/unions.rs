@@ -2,19 +2,19 @@ use super::*;
 use crate::*;
 use std::fmt::Debug;
 
-pub struct Union<T: Parsable> {
+pub struct Union<T: Parsable, Ty: Parsable> {
     pub id: Ident,
     pub genetic_params: Option<GenericParams<T>>,
     pub where_clause: Option<WhereClause<T>>,
-    pub fields: StructFields<T>,
+    pub fields: StructFields<T, Ty>,
 }
-impl<T: Parsable> MappedParse for Union<T> {
+impl<T: Parsable, Ty: Parsable> MappedParse for Union<T, Ty> {
     type Source = (
         KwUnion,
         Ident,
         Option<GenericParams<T>>,
         Option<WhereClause<T>>,
-        Brace<MinLength<StructFields<T>>>,
+        Brace<MinLength<StructFields<T, Ty>>>,
     );
 
     type Output = Self;
@@ -35,9 +35,10 @@ impl<T: Parsable> MappedParse for Union<T> {
         src
     }
 }
-impl<T: Parsable> Debug for Union<T>
+impl<T: Parsable, Ty: Parsable> Debug for Union<T, Ty>
 where
     SmOut<T>: Debug,
+    SmOut<Ty>: Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Union")
@@ -54,7 +55,7 @@ mod tests {
     use super::*;
     use crate::insta_match_test;
 
-    insta_match_test!(it_matches_union, Union <Infallible>: union MyUnion {
+    insta_match_test!(it_matches_union, Union <Infallible,Ident>: union MyUnion {
         f1: u32,
         f2: f32,
     });

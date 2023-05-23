@@ -1,6 +1,6 @@
 ---
 source: syn-state-machine/src/common_tokens/function_pointer_types.rs
-expression: "crate::parse::<BareFunctionType>(::quote::quote! { fn() })"
+expression: "crate::parse::<BareFunctionType<Infallible,\n        PBox<TypeNoBounds<Infallible>>>>(::quote::quote! { fn() })"
 ---
 Ok(
     (

@@ -1,6 +1,6 @@
 ---
 source: syn-state-machine/src/common_tokens/path.rs
-expression: "crate::parse::<TypePath>(::quote::quote! { hello :: world :: hi })"
+expression: "crate::parse::<TypePath<Infallible>>(::quote::quote! { hello :: world :: hi })"
 ---
 Ok(
     (

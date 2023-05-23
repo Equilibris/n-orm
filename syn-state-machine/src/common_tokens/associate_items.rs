@@ -2,22 +2,22 @@ use super::*;
 use crate::*;
 use std::fmt::Debug;
 
-pub type AssociateItems<T> = Vec<AssociateItem<T>>;
+pub type AssociateItems<T, Ty> = Vec<AssociateItem<T, Ty>>;
 
-pub enum AssociateItem<T: Parsable> {
+pub enum AssociateItem<T: Parsable, Ty: Parsable> {
     MacroInvocation(Attrs<T>, MacroInvocationSemi),
-    TypeAlias(Attrs<T>, Option<Visibility>, TypeAlias<T>),
-    ConstantItem(Attrs<T>, Option<Visibility>, ConstantItem<T>),
-    Function(Attrs<T>, Option<Visibility>, Function<T>),
+    TypeAlias(Attrs<T>, Option<Visibility>, TypeAlias<T, Ty>),
+    ConstantItem(Attrs<T>, Option<Visibility>, ConstantItem<Ty>),
+    Function(Attrs<T>, Option<Visibility>, Function<T, Ty>),
 }
-impl<T: Parsable> MappedParse for AssociateItem<T> {
+impl<T: Parsable, Ty: Parsable> MappedParse for AssociateItem<T, Ty> {
     type Source = WithAttrs<
         T,
         Sum2<
             MacroInvocationSemi,
             (
                 Option<Visibility>,
-                Sum3<MBox<TypeAlias<T>>, MBox<ConstantItem<T>>, MBox<Function<T>>>,
+                Sum3<MBox<TypeAlias<T, Ty>>, MBox<ConstantItem<Ty>>, MBox<Function<T, Ty>>>,
             ),
         >,
     >;
@@ -40,9 +40,10 @@ impl<T: Parsable> MappedParse for AssociateItem<T> {
         src
     }
 }
-impl<T: Parsable> Debug for AssociateItem<T>
+impl<T: Parsable, Ty: Parsable> Debug for AssociateItem<T, Ty>
 where
     SmOut<T>: Debug,
+    SmOut<Ty>: Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {

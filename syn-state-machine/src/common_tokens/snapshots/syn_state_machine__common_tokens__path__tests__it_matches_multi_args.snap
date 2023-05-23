@@ -1,6 +1,6 @@
 ---
 source: syn-state-machine/src/common_tokens/path.rs
-expression: "crate::parse::<GenericArgs>(::quote::quote! { < 'a, T, hello :: world > })"
+expression: "crate::parse::<GenericArgs<Infallible>>(::quote::quote! {\n            < 'a, T, hello :: world >\n        })"
 ---
 Ok(
     (

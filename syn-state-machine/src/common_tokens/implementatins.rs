@@ -2,13 +2,14 @@ use super::*;
 use crate::*;
 use std::fmt::Debug;
 
-pub enum Implementation<T: Parsable> {
-    Inherent(InherentImpl<T>),
-    Trait(TraitImpl<T>),
+pub enum Implementation<T: Parsable, Ty: Parsable> {
+    Inherent(InherentImpl<T, Ty>),
+    Trait(TraitImpl<T, Ty>),
 }
-impl<T: Parsable> Debug for Implementation<T>
+impl<T: Parsable, Ty: Parsable> Debug for Implementation<T, Ty>
 where
     SmOut<T>: Debug,
+    SmOut<Ty>: Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -17,8 +18,8 @@ where
         }
     }
 }
-impl<T: Parsable> MappedParse for Implementation<T> {
-    type Source = Sum2<InherentImpl<T>, TraitImpl<T>>;
+impl<T: Parsable, Ty: Parsable> MappedParse for Implementation<T, Ty> {
+    type Source = Sum2<InherentImpl<T, Ty>, TraitImpl<T, Ty>>;
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -37,21 +38,22 @@ impl<T: Parsable> MappedParse for Implementation<T> {
     }
 }
 
-pub struct TraitImpl<T: Parsable> {
+pub struct TraitImpl<T: Parsable, Ty: Parsable> {
     pub r#unsafe: bool,
     pub genetic_params: Option<GenericParams<T>>,
     pub where_clause: Option<WhereClause<T>>,
     pub neg: bool,
     pub r#trait: TypePath<T>,
-    pub ty: Type<T>,
+    pub ty: SmOut<Ty>,
 
     pub attrs: InnerAttrs<T>,
-    pub items: AssociateItems<T>,
+    pub items: AssociateItems<T, Ty>,
 }
 
-impl<T: Parsable> Debug for TraitImpl<T>
+impl<T: Parsable, Ty: Parsable> Debug for TraitImpl<T, Ty>
 where
     SmOut<T>: Debug,
+    SmOut<Ty>: Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("TraitImpl")
@@ -65,7 +67,7 @@ where
             .finish()
     }
 }
-impl<T: Parsable> MappedParse for TraitImpl<T> {
+impl<T: Parsable, Ty: Parsable> MappedParse for TraitImpl<T, Ty> {
     type Source = (
         Option<KwUnsafe>,
         KwImpl,
@@ -73,9 +75,9 @@ impl<T: Parsable> MappedParse for TraitImpl<T> {
         Option<Exclamation>,
         MBox<TypePath<T>>,
         KwFor,
-        MBox<Type<T>>,
+        Ty,
         Option<WhereClause<T>>,
-        Brace<WithInnerAttrs<T, AssociateItems<T>>>,
+        Brace<WithInnerAttrs<T, AssociateItems<T, Ty>>>,
     );
 
     type Output = Self;
@@ -101,21 +103,21 @@ impl<T: Parsable> MappedParse for TraitImpl<T> {
     }
 }
 
-pub struct InherentImpl<T: Parsable> {
+pub struct InherentImpl<T: Parsable, Ty: Parsable> {
     genetic_params: Option<GenericParams<T>>,
-    ty: Type<T>,
+    ty: SmOut<Ty>,
     where_clause: Option<WhereClause<T>>,
 
     attrs: InnerAttrs<T>,
-    items: AssociateItems<T>,
+    items: AssociateItems<T, Ty>,
 }
-impl<T: Parsable> MappedParse for InherentImpl<T> {
+impl<T: Parsable, Ty: Parsable> MappedParse for InherentImpl<T, Ty> {
     type Source = (
         KwImpl,
         Option<GenericParams<T>>,
-        Type<T>,
+        Ty,
         Option<WhereClause<T>>,
-        Brace<WithInnerAttrs<T, AssociateItems<T>>>,
+        Brace<WithInnerAttrs<T, AssociateItems<T, Ty>>>,
     );
 
     type Output = Self;
@@ -137,9 +139,10 @@ impl<T: Parsable> MappedParse for InherentImpl<T> {
         src
     }
 }
-impl<T: Parsable> Debug for InherentImpl<T>
+impl<T: Parsable, Ty: Parsable> Debug for InherentImpl<T, Ty>
 where
     SmOut<T>: Debug,
+    SmOut<Ty>: Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("InherentImpl")
@@ -158,14 +161,14 @@ mod tests {
     use crate::insta_match_test;
 
     insta_match_test!(
-        it_matches_simple_inherent, Implementation <Infallible>:
+        it_matches_simple_inherent, Implementation <Infallible, Type<Infallible>>:
 
         impl<T> Option<T> {
             pub fn is_some(&self) -> bool;
         }
     );
     insta_match_test!(
-        it_matches_simple_trait, Implementation <Infallible>:
+        it_matches_simple_trait, Implementation <Infallible, Type<Infallible>>:
 
         unsafe impl<T: Copy> Copy for Option<T> {}
     );

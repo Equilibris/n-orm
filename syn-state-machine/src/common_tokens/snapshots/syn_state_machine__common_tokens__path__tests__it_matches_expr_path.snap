@@ -1,6 +1,6 @@
 ---
 source: syn-state-machine/src/common_tokens/path.rs
-expression: "crate::parse::<PathInExpression>(::quote::quote! {\n            usize :: hello :: < Hello, World >\n        })"
+expression: "crate::parse::<PathInExpression<Infallible>>(::quote::quote! {\n            usize :: hello :: < Hello, World >\n        })"
 ---
 Ok(
     (

@@ -1,6 +1,6 @@
 ---
 source: syn-state-machine/src/common_tokens/structs.rs
-expression: "crate::parse::<Struct>(::quote::quote! {\n            struct Point < T > where T : Hi { pub v0 : T, pub v1 : T }\n        })"
+expression: "crate::parse::<Struct<Infallible,\n        Ident>>(::quote::quote! {\n            struct Point < T > where T : Hi { pub v0 : T, pub v1 : T }\n        })"
 ---
 Ok(
     (
@@ -35,21 +35,8 @@ Ok(
                             id: Ident(
                                 v0,
                             ),
-                            ty: NoBounds(
-                                TypePath(
-                                    TypePath {
-                                        leading: false,
-                                        segments: [
-                                            Simple {
-                                                id: Id(
-                                                    Ident(
-                                                        T,
-                                                    ),
-                                                ),
-                                            },
-                                        ],
-                                    },
-                                ),
+                            ty: Ident(
+                                T,
                             ),
                         },
                         StructField {
@@ -60,21 +47,8 @@ Ok(
                             id: Ident(
                                 v1,
                             ),
-                            ty: NoBounds(
-                                TypePath(
-                                    TypePath {
-                                        leading: false,
-                                        segments: [
-                                            Simple {
-                                                id: Id(
-                                                    Ident(
-                                                        T,
-                                                    ),
-                                                ),
-                                            },
-                                        ],
-                                    },
-                                ),
+                            ty: Ident(
+                                T,
                             ),
                         },
                     ],

@@ -1,6 +1,6 @@
 ---
 source: syn-state-machine/src/common_tokens/enumerations.rs
-expression: "crate::parse::<EnumItem>(::quote::quote! { Block(World) })"
+expression: "crate::parse::<EnumItem<Infallible, Ident>>(::quote::quote! { Block(World) })"
 ---
 Ok(
     (
@@ -14,21 +14,8 @@ Ok(
                     TupleField {
                         attr: [],
                         vis: None,
-                        ty: NoBounds(
-                            TypePath(
-                                TypePath {
-                                    leading: false,
-                                    segments: [
-                                        Simple {
-                                            id: Id(
-                                                Ident(
-                                                    World,
-                                                ),
-                                            ),
-                                        },
-                                    ],
-                                },
-                            ),
+                        ty: Ident(
+                            World,
                         ),
                     },
                 ],

@@ -1,6 +1,6 @@
 ---
 source: syn-state-machine/src/common_tokens/implementatins.rs
-expression: "crate::parse::<Implementation<Infallible>>(::quote::quote! {\n            unsafe impl < T : Copy > Copy for Option < T > {}\n        })"
+expression: "crate::parse::<Implementation<Infallible,\n        Type<Infallible>>>(::quote::quote! {\n            unsafe impl < T : Copy > Copy for Option < T > {}\n        })"
 ---
 Ok(
     (

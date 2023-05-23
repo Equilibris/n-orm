@@ -1,6 +1,6 @@
 ---
 source: syn-state-machine/src/common_tokens/unions.rs
-expression: "crate::parse::<Union>(::quote::quote! {\n            union MyUnion { f1 : u32, f2 : f32, }\n        })"
+expression: "crate::parse::<Union<Infallible,\n        Ident>>(::quote::quote! { union MyUnion { f1 : u32, f2 : f32, } })"
 ---
 Ok(
     (
@@ -18,21 +18,8 @@ Ok(
                         id: Ident(
                             f1,
                         ),
-                        ty: NoBounds(
-                            TypePath(
-                                TypePath {
-                                    leading: false,
-                                    segments: [
-                                        Simple {
-                                            id: Id(
-                                                Ident(
-                                                    u32,
-                                                ),
-                                            ),
-                                        },
-                                    ],
-                                },
-                            ),
+                        ty: Ident(
+                            u32,
                         ),
                     },
                     StructField {
@@ -41,21 +28,8 @@ Ok(
                         id: Ident(
                             f2,
                         ),
-                        ty: NoBounds(
-                            TypePath(
-                                TypePath {
-                                    leading: false,
-                                    segments: [
-                                        Simple {
-                                            id: Id(
-                                                Ident(
-                                                    f32,
-                                                ),
-                                            ),
-                                        },
-                                    ],
-                                },
-                            ),
+                        ty: Ident(
+                            f32,
                         ),
                     },
                 ],

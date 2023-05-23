@@ -1,6 +1,6 @@
 ---
 source: syn-state-machine/src/common_tokens/enumerations.rs
-expression: "crate::parse::<EnumItem>(::quote::quote! { Block { hello : World } })"
+expression: "crate::parse::<EnumItem<Infallible,\n        Ident>>(::quote::quote! { Block { hello : World } })"
 ---
 Ok(
     (
@@ -17,21 +17,8 @@ Ok(
                         id: Ident(
                             hello,
                         ),
-                        ty: NoBounds(
-                            TypePath(
-                                TypePath {
-                                    leading: false,
-                                    segments: [
-                                        Simple {
-                                            id: Id(
-                                                Ident(
-                                                    World,
-                                                ),
-                                            ),
-                                        },
-                                    ],
-                                },
-                            ),
+                        ty: Ident(
+                            World,
                         ),
                     },
                 ],

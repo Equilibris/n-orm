@@ -1,6 +1,6 @@
 ---
 source: syn-state-machine/src/common_tokens/enumerations.rs
-expression: "crate::parse::<Enumeration>(::quote::quote! {\n            enum HelloWorld < F, T > where F : Into < T >\n            { Unit, From(F), To { result : T }, }\n        })"
+expression: "crate::parse::<Enumeration<Infallible,\n        Ident>>(::quote::quote! {\n            enum HelloWorld < F, T > where F : Into < T >\n            { Unit, From(F), To { result : T }, }\n        })"
 ---
 Ok(
     (
@@ -127,21 +127,8 @@ Ok(
                                 TupleField {
                                     attr: [],
                                     vis: None,
-                                    ty: NoBounds(
-                                        TypePath(
-                                            TypePath {
-                                                leading: false,
-                                                segments: [
-                                                    Simple {
-                                                        id: Id(
-                                                            Ident(
-                                                                F,
-                                                            ),
-                                                        ),
-                                                    },
-                                                ],
-                                            },
-                                        ),
+                                    ty: Ident(
+                                        F,
                                     ),
                                 },
                             ],
@@ -163,21 +150,8 @@ Ok(
                                     id: Ident(
                                         result,
                                     ),
-                                    ty: NoBounds(
-                                        TypePath(
-                                            TypePath {
-                                                leading: false,
-                                                segments: [
-                                                    Simple {
-                                                        id: Id(
-                                                            Ident(
-                                                                T,
-                                                            ),
-                                                        ),
-                                                    },
-                                                ],
-                                            },
-                                        ),
+                                    ty: Ident(
+                                        T,
                                     ),
                                 },
                             ],

@@ -2,14 +2,14 @@ use super::*;
 use crate::*;
 use std::fmt::Debug;
 
-pub struct ConstantItem<T: Parsable> {
+pub struct ConstantItem<Ty: Parsable> {
     pub id: Ident,
-    pub ty: Type<T>,
+    pub ty: SmOut<Ty>,
     pub expr: Option<Expression>,
 }
-impl<T: Parsable> Debug for ConstantItem<T>
+impl<Ty: Parsable> Debug for ConstantItem<Ty>
 where
-    SmOut<T>: Debug,
+    SmOut<Ty>: Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("ConstantItem")
@@ -19,12 +19,12 @@ where
             .finish()
     }
 }
-impl<T: Parsable> MappedParse for ConstantItem<T> {
+impl<Ty: Parsable> MappedParse for ConstantItem<Ty> {
     type Source = (
         KwConst,
         IdentifierOrUnder,
         Colon,
-        Type<T>,
+        Ty,
         Option<(Eq, Expression)>,
         Semi,
     );

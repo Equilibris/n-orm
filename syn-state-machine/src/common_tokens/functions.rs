@@ -3,7 +3,7 @@ use std::fmt::Debug;
 use super::*;
 use crate::*;
 
-pub struct Function<T: Parsable> {
+pub struct Function<T: Parsable, Ty: Parsable> {
     pub qualifiers: FunctionQualifiers,
 
     pub ident: Ident,
@@ -11,15 +11,16 @@ pub struct Function<T: Parsable> {
     pub generic_params: Option<GenericParams<T>>,
     pub where_clause: Option<WhereClause<T>>,
 
-    pub self_param: Option<WithAttrs<T, SelfParam<T>>>,
-    pub args: Vec<WithAttrs<T, FunctionParam<T>>>,
+    pub self_param: Option<WithAttrs<T, SelfParam<Ty>>>,
+    pub args: Vec<WithAttrs<T, FunctionParam<T, Ty>>>,
 
-    pub returns: Option<Type<T>>,
+    pub returns: Option<SmOut<Ty>>,
     pub body: Option<BlockExpression>,
 }
-impl<T: Parsable> Debug for Function<T>
+impl<T: Parsable, Ty: Parsable> Debug for Function<T, Ty>
 where
     SmOut<T>: Debug,
+    SmOut<Ty>: Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Function")
@@ -34,14 +35,14 @@ where
             .finish()
     }
 }
-impl<T: Parsable> MappedParse for Function<T> {
+impl<T: Parsable, Ty: Parsable> MappedParse for Function<T, Ty> {
     type Source = (
         FunctionQualifiers,
         KwFn,
         Identifier,
         Option<GenericParams<T>>,
-        Paren<FunctionParameters<T>>,
-        Option<FunctionReturnType<T>>,
+        Paren<FunctionParameters<T, Ty>>,
+        Option<FunctionReturnType<Ty>>,
         Option<WhereClause<T>>,
         Sum2<BlockExpression, Semi>,
     );
@@ -61,7 +62,7 @@ impl<T: Parsable> MappedParse for Function<T> {
 
             self_param: src.4 .0.self_param,
             args: src.4 .0.params,
-            returns: src.5.map(|v| v.1),
+            returns: src.5.map(|v| v.0),
             body: if let Sum2::Val0(a) = src.7 {
                 Some(a)
             } else {
@@ -109,14 +110,15 @@ impl MappedParse for FunctionQualifiers {
     }
 }
 
-pub struct FunctionParameters<T: Parsable> {
-    pub self_param: Option<WithAttrs<T, SelfParam<T>>>,
+pub struct FunctionParameters<T: Parsable, Ty: Parsable> {
+    pub self_param: Option<WithAttrs<T, SelfParam<Ty>>>,
 
-    pub params: Vec<WithAttrs<T, FunctionParam<T>>>,
+    pub params: Vec<WithAttrs<T, FunctionParam<T, Ty>>>,
 }
-impl<T: Parsable> Debug for FunctionParameters<T>
+impl<T: Parsable, Ty: Parsable> Debug for FunctionParameters<T, Ty>
 where
     SmOut<T>: Debug,
+    SmOut<Ty>: Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("FunctionParameters")
@@ -125,13 +127,13 @@ where
             .finish()
     }
 }
-impl<T: Parsable> MappedParse for FunctionParameters<T> {
+impl<T: Parsable, Ty: Parsable> MappedParse for FunctionParameters<T, Ty> {
     type Source = Sum2<
         (
-            Option<(WithAttrs<T, SelfParam<T>>, Comma)>,
-            Interlace<WithAttrs<T, FunctionParam<T>>, Comma>,
+            Option<(WithAttrs<T, SelfParam<Ty>>, Comma)>,
+            Interlace<WithAttrs<T, FunctionParam<T, Ty>>, Comma>,
         ),
-        (WithAttrs<T, SelfParam<T>>, Option<Comma>),
+        (WithAttrs<T, SelfParam<Ty>>, Option<Comma>),
     >;
 
     type Output = Self;
@@ -182,13 +184,13 @@ impl MappedParse for ShorthandSelf {
     }
 }
 
-pub struct TypedSelf<T: Parsable> {
+pub struct TypedSelf<Ty: Parsable> {
     pub is_mut: bool,
-    pub ty: Type<T>,
+    pub ty: SmOut<Ty>,
 }
-impl<T: Parsable> Debug for TypedSelf<T>
+impl<Ty: Parsable> Debug for TypedSelf<Ty>
 where
-    SmOut<T>: Debug,
+    SmOut<Ty>: Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("TypedSelf")
@@ -197,8 +199,8 @@ where
             .finish()
     }
 }
-impl<T: Parsable> MappedParse for TypedSelf<T> {
-    type Source = (Option<KwMut>, KwLowerSelf, Colon, Type<T>);
+impl<Ty: Parsable> MappedParse for TypedSelf<Ty> {
+    type Source = (Option<KwMut>, KwLowerSelf, Colon, Ty);
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -217,13 +219,13 @@ impl<T: Parsable> MappedParse for TypedSelf<T> {
     }
 }
 
-pub enum SelfParam<T: Parsable> {
+pub enum SelfParam<Ty: Parsable> {
     Shorthand(ShorthandSelf),
-    Typed(TypedSelf<T>),
+    Typed(TypedSelf<Ty>),
 }
-impl<T: Parsable> Debug for SelfParam<T>
+impl<Ty: Parsable> Debug for SelfParam<Ty>
 where
-    SmOut<T>: Debug,
+    SmOut<Ty>: Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -232,8 +234,8 @@ where
         }
     }
 }
-impl<T: Parsable> MappedParse for SelfParam<T> {
-    type Source = Sum2<TypedSelf<T>, ShorthandSelf>;
+impl<Ty: Parsable> MappedParse for SelfParam<Ty> {
+    type Source = Sum2<TypedSelf<Ty>, ShorthandSelf>;
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -252,16 +254,17 @@ impl<T: Parsable> MappedParse for SelfParam<T> {
     }
 }
 
-type FunctionParamPattern<T> = (PatternNoTopAlt<T>, Colon, Sum2<Type<T>, Elipsis>);
+type FunctionParamPattern<T, Ty> = (PatternNoTopAlt<T>, Colon, Sum2<Ty, Elipsis>);
 
-pub enum FunctionParam<T: Parsable> {
-    Patterned(PatternNoTopAlt<T>, Sum2<Type<T>, Elipsis>),
-    Type(Type<T>),
+pub enum FunctionParam<T: Parsable, Ty: Parsable> {
+    Patterned(PatternNoTopAlt<T>, Sum2<SmOut<Ty>, Elipsis>),
+    Type(SmOut<Ty>),
     Elipsis,
 }
-impl<T: Parsable> Debug for FunctionParam<T>
+impl<T: Parsable, Ty: Parsable> Debug for FunctionParam<T, Ty>
 where
     SmOut<T>: Debug,
+    SmOut<Ty>: Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -273,8 +276,8 @@ where
         }
     }
 }
-impl<T: Parsable> MappedParse for FunctionParam<T> {
-    type Source = Sum3<MBox<FunctionParamPattern<T>>, Elipsis, MBox<Type<T>>>;
+impl<T: Parsable, Ty: Parsable> MappedParse for FunctionParam<T, Ty> {
+    type Source = Sum3<MBox<FunctionParamPattern<T, Ty>>, Elipsis, MBox<Ty>>;
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -294,7 +297,31 @@ impl<T: Parsable> MappedParse for FunctionParam<T> {
     }
 }
 
-pub type FunctionReturnType<T> = (Arrow, Type<T>);
+pub struct FunctionReturnType<Ty: Parsable>(pub SmOut<Ty>);
+impl<Ty: Parsable> Debug for FunctionReturnType<Ty>
+where
+    SmOut<Ty>: Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_tuple("FunctionReturnType").field(&self.0).finish()
+    }
+}
+impl<Ty: Parsable> MappedParse for FunctionReturnType<Ty> {
+    type Source = (Arrow, Ty);
+
+    type Output = Self;
+    type Error = SmErr<Self::Source>;
+
+    fn map(
+        src: SmOut<Self::Source>,
+    ) -> Result<<Self as MappedParse>::Output, <Self as MappedParse>::Error> {
+        Ok(Self(src.1))
+    }
+
+    fn map_err(src: SmErr<Self::Source>) -> <Self as MappedParse>::Error {
+        src
+    }
+}
 
 pub type Abi = StringLit;
 
@@ -303,7 +330,7 @@ mod tests {
     use super::*;
 
     insta_match_test!(it_matches_shorthand_self, SelfParam<Infallible>: self);
-    insta_match_test!(it_matches_typed_self, SelfParam<Infallible>: mut self: Box<Self>);
+    insta_match_test!(it_matches_typed_self, SelfParam<TypePath<Infallible>>: mut self: Box<Self>);
 
-    insta_match_test!(it_matches_complex_function, Function <Infallible>: const async unsafe extern "C" fn hello<T>(self, a: T) -> T;);
+    insta_match_test!(it_matches_complex_function, Function <Infallible,Ident>: const async unsafe extern "C" fn hello<T>(self, a: T) -> T;);
 }
