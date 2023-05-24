@@ -189,18 +189,18 @@ impl<T: Parsable> MappedParse for PatternWithoutRange<T> {
         let src = *src;
 
         let Sum12Err {
-            v0: literal_pattern,
-            v1: identifier_pattern,
-            v2: wildcard_pattern,
-            v3: rest_pattern,
-            v4: reference_pattern,
-            v5: struct_pattern,
-            v6: tuple_struct_pattern,
-            v7: tuple_pattern,
-            v8: grouped_pattern,
-            v9: slice_pattern,
-            v10: path_pattern,
-            v11: macro_invocation,
+            a: literal_pattern,
+            b: identifier_pattern,
+            c: wildcard_pattern,
+            d: rest_pattern,
+            e: reference_pattern,
+            f: struct_pattern,
+            g: tuple_struct_pattern,
+            h: tuple_pattern,
+            i: grouped_pattern,
+            j: slice_pattern,
+            k: path_pattern,
+            l: macro_invocation,
         } = src;
 
         PatternError {

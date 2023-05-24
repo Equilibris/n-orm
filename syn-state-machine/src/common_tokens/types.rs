@@ -168,20 +168,20 @@ impl<T: Parsable> MappedParse for TypeNoBounds<T> {
 
     fn map_err(src: SmErr<Self::Source>) -> <Self as MappedParse>::Error {
         let Sum14Err {
-            v0: parenthesized,
-            v1: impl_trait_one_bound,
-            v2: trait_object_one_bound,
-            v3: type_path,
-            v4: tuple,
-            v5: never,
-            v6: raw_pointer,
-            v7: reference,
-            v8: array,
-            v9: slice,
-            v10: inferred,
-            v11: qualified_path,
-            v12: bare_function,
-            v13: macro_invocation,
+            a: parenthesized,
+            b: impl_trait_one_bound,
+            c: trait_object_one_bound,
+            d: type_path,
+            e: tuple,
+            f: never,
+            g: raw_pointer,
+            h: reference,
+            i: array,
+            j: slice,
+            k: inferred,
+            l: qualified_path,
+            m: bare_function,
+            n: macro_invocation,
         } = *src;
 
         TypeNoBoundsError {
@@ -403,9 +403,10 @@ mod tests {
 
     #[test]
     pub fn sm_size_prune() {
-        dbg!(std::mem::size_of::<
-            <Type<Infallible> as Parsable>::StateMachine,
-        >());
+        panic!(
+            "{}",
+            std::mem::size_of::<<Type<Infallible> as Parsable>::StateMachine>()
+        );
     }
 
     // The primary issue for type matching is stack-overflows. This is me trying to avoid this.
