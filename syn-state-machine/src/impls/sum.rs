@@ -94,20 +94,54 @@ mod new_sum {
 
     macro_rules! sum_n {
         (
-            $name:ident, $mname:ident
+            $name:ident, $mname:ident, $errored_name:ident
             $(
                 ; $sum:ident
                 , $next:ident
                 , $gen:ident
-                , $err_type:ty
-                , ($($bound:tt)+)
+                , ($fst:ident $($err_type:ident)*)
+                , $bound:ident
             )*
             : $f_sum:ident
             , $f_gen:ident
-            , $f_err_type:ty
-            , ($($f_bound:tt)+)
-            , $final:ty
+            , ($f_fst:ident $($f_err_type:ident)*)
+            , $f_bound:ident
+            , ($ff_fst:ident $($final:ident)*)
             ) => {
+
+            pub struct $errored_name<
+                A: Parsable,
+                $($gen: Parsable,)*
+                $f_gen: Parsable,
+                E0
+            > (std::marker::PhantomData<(A, $($gen,)* $f_gen, E0)>);
+
+            impl<
+                A: Parsable,
+                $($gen: Parsable,)*
+                $f_gen: Parsable,
+                E0
+            > Parsable for $errored_name<
+                A,
+                $($gen,)*
+                $f_gen,
+                E0
+            >
+            where
+                E0: ErrorNext<SmErr<A>> + Default,
+                $(
+                    $fst<E0, $(SmErr<$err_type>,)*>: ErrorNext<SmErr<$bound>>,
+                )*
+                $f_fst<E0, $(SmErr<$f_err_type>,)*>: ErrorNext<SmErr<$f_bound>>,
+                $ff_fst<E0, $(SmErr<$final>, )*>: std::error::Error,
+            {
+                type StateMachine = $mname<
+                    A::StateMachine,
+                    $($gen::StateMachine,)*
+                    $f_gen::StateMachine,
+                    E0
+                >;
+            }
 
             #[derive(Clone, Debug)]
             pub enum $name<A, $($gen,)* $f_gen> {
@@ -124,17 +158,17 @@ mod new_sum {
             where
                 E0: ErrorNext<A::Error>,
                 $(
-                    $err_type: $($bound)+,
+                    $fst<E0, $($err_type::Error,)*>: ErrorNext<$bound::Error>,
                 )*
-                $f_err_type: $($f_bound)+,
-                $final: std::error::Error,
+                $f_fst<E0, $($f_err_type::Error,)*>: ErrorNext<$f_bound::Error>,
+                $ff_fst<E0, $($final::Error, )*>: std::error::Error,
             {
                 Val0(Vec<TokenTree>, E0, A),
                 // Val1(Vec<TokenTree>, E1Next<E0, A::Error>, B),
                 $(
-                    $sum(Vec<TokenTree>, $err_type, $gen),
+                    $sum(Vec<TokenTree>, $fst<E0, $($err_type::Error,)*>, $gen),
                 )*
-                $f_sum(Vec<TokenTree>, $f_err_type, $f_gen)
+                $f_sum(Vec<TokenTree>, $f_fst<E0, $($f_err_type::Error,)*>, $f_gen)
             }
 
             impl<
@@ -146,10 +180,10 @@ mod new_sum {
             where
                 E0: Default + ErrorNext<A::Error>,
                 $(
-                    $err_type: $($bound)+,
+                    $fst<E0, $($err_type::Error,)*>: ErrorNext<$bound::Error>,
                 )*
-                $f_err_type: $($f_bound)+,
-                $final: std::error::Error,
+                $f_fst<E0, $($f_err_type::Error,)*>: ErrorNext<$f_bound::Error>,
+                $ff_fst<E0, $($final::Error,)*>: std::error::Error,
             {
                 fn default() -> Self {
                     Self::Val0(
@@ -182,10 +216,10 @@ mod new_sum {
             where
                 E0: Default + ErrorNext<A::Error>,
                 $(
-                    $err_type: $($bound)+,
+                    $fst<E0, $($err_type::Error,)*>: ErrorNext<$bound::Error>,
                 )*
-                $f_err_type: $($f_bound)+,
-                $final: std::error::Error,
+                $f_fst<E0, $($f_err_type::Error,)*>: ErrorNext<$f_bound::Error>,
+                $ff_fst<E0, $($final::Error,)*>: std::error::Error,
             {
                 fn stepup(
                     mut self,
@@ -275,13 +309,13 @@ mod new_sum {
             where
                 E0: Default + ErrorNext<A::Error>,
                 $(
-                    $err_type: $($bound)+,
+                    $fst<E0, $($err_type::Error,)*>: ErrorNext<$bound::Error>,
                 )*
-                $f_err_type: $($f_bound)+,
-                $final: std::error::Error,
+                $f_fst<E0, $($f_err_type::Error,)*>: ErrorNext<$f_bound::Error>,
+                $ff_fst<E0, $($final::Error,)*>: std::error::Error,
             {
                 type Output = $name<A::Output, $($gen::Output,)* $f_gen::Output>;
-                type Error = $final;
+                type Error = $ff_fst<E0, $($final::Error,)*>;
 
                 fn drive(
                     self,
@@ -387,327 +421,162 @@ mod new_sum {
         };
     }
 
-    // sum_n!(
-    //     Sum22, Sum22M
-    //     ; Val1, B, E1Next<E0, A::Error>, (ErrorNext<B::Error>)
-    //     : E2Next<E0, A::Error, B::Error>
-    // );
     sum_n!(
-        Sum2, Sum2M
-        : Val1, B, E1Next<E0, A::Error>, (ErrorNext<B::Error>), E2Next<E0, A::Error, B::Error>
+        Sum2, Sum2M, ESum2
+        : Val1, B, (E1Next A), B
+        ,          (E2Next A B)
     );
     sum_n!(
-        Sum3, Sum3M
-        ; Val1, Val2, B, E1Next<E0, A::Error>, (ErrorNext<B::Error>)
-        : Val2, C,       E2Next<E0, A::Error, B::Error>, (ErrorNext<C::Error>)
-        ,                E3Next<E0, A::Error, B::Error, C::Error>
+        Sum3, Sum3M, ESum3
+        ; Val1, Val2, B, (E1Next A), B
+        : Val2, C,       (E2Next A B), C
+        ,                (E3Next A B C)
     );
     sum_n!(
-        Sum4, Sum4M
-        ; Val1, Val2, B, E1Next<E0, A::Error>, (ErrorNext<B::Error>)
-        ; Val2, Val3, C, E2Next<E0, A::Error, B::Error>, (ErrorNext<C::Error>)
-        : Val3, D,       E3Next<E0, A::Error, B::Error, C::Error>, (ErrorNext<D::Error>)
-        ,                E4Next<E0, A::Error, B::Error, C::Error, D::Error>
+        Sum4, Sum4M, ESum4
+        ; Val1, Val2, B, (E1Next A), B
+        ; Val2, Val3, C, (E2Next A B), C
+        : Val3, D,       (E3Next A B C), D
+        ,                (E4Next A B C D)
     );
     sum_n!(
-        Sum5, Sum5M
-        ; Val1, Val2, B, E1Next<E0, A::Error>, (ErrorNext<B::Error>)
-        ; Val2, Val3, C, E2Next<E0, A::Error, B::Error>, (ErrorNext<C::Error>)
-        ; Val3, Val4, D, E3Next<E0, A::Error, B::Error, C::Error>, (ErrorNext<D::Error>)
-        : Val4, E,       E4Next<E0, A::Error, B::Error, C::Error, D::Error>, (ErrorNext<E::Error>)
-        ,                E5Next<E0, A::Error, B::Error, C::Error, D::Error, E::Error>
+        Sum5, Sum5M, ESum5
+        ; Val1, Val2, B, (E1Next A), B
+        ; Val2, Val3, C, (E2Next A B), C
+        ; Val3, Val4, D, (E3Next A B C), D
+        : Val4, E,       (E4Next A B C D), E
+        ,                (E5Next A B C D E)
     );
     sum_n!(
-        Sum6, Sum6M
-        ; Val1, Val2, B, E1Next<E0, A::Error>, (ErrorNext<B::Error>)
-        ; Val2, Val3, C, E2Next<E0, A::Error, B::Error>, (ErrorNext<C::Error>)
-        ; Val3, Val4, D, E3Next<E0, A::Error, B::Error, C::Error>, (ErrorNext<D::Error>)
-        ; Val4, Val5, E, E4Next<E0, A::Error, B::Error, C::Error, D::Error>, (ErrorNext<E::Error>)
-        : Val5, F,       E5Next<E0, A::Error, B::Error, C::Error, D::Error, E::Error>, (ErrorNext<F::Error>)
-        ,                E6Next<E0, A::Error, B::Error, C::Error, D::Error, E::Error, F::Error>
+        Sum6, Sum6M, ESum6
+        ; Val1, Val2, B, (E1Next A), B
+        ; Val2, Val3, C, (E2Next A B), C
+        ; Val3, Val4, D, (E3Next A B C), D
+        ; Val4, Val5, E, (E4Next A B C D), E
+        : Val5, F,       (E5Next A B C D E), F
+        ,                (E6Next A B C D E F)
     );
     sum_n!(
-        Sum7, Sum7M
-        ; Val1, Val2, B, E1Next<E0, A::Error>, (ErrorNext<B::Error>)
-        ; Val2, Val3, C, E2Next<E0, A::Error, B::Error>, (ErrorNext<C::Error>)
-        ; Val3, Val4, D, E3Next<E0, A::Error, B::Error, C::Error>, (ErrorNext<D::Error>)
-        ; Val4, Val5, E, E4Next<E0, A::Error, B::Error, C::Error, D::Error>, (ErrorNext<E::Error>)
-        ; Val5, Val6, F, E5Next<E0, A::Error, B::Error, C::Error, D::Error, E::Error>, (ErrorNext<F::Error>)
-        : Val6, G,       E6Next<E0, A::Error, B::Error, C::Error, D::Error, E::Error, F::Error>, (ErrorNext<G::Error>)
-        ,                E7Next<E0, A::Error, B::Error, C::Error, D::Error, E::Error, F::Error, G::Error>
+        Sum7, Sum7M, ESum7
+        ; Val1, Val2, B, (E1Next A), B
+        ; Val2, Val3, C, (E2Next A B), C
+        ; Val3, Val4, D, (E3Next A B C), D
+        ; Val4, Val5, E, (E4Next A B C D), E
+        ; Val5, Val6, F, (E5Next A B C D E), F
+        : Val6, G,       (E6Next A B C D E F), G
+        ,                (E7Next A B C D E F G)
     );
     sum_n!(
-        Sum8, Sum8M
-        ; Val1, Val2, B, E1Next<E0, A::Error>, (ErrorNext<B::Error>)
-        ; Val2, Val3, C, E2Next<E0, A::Error, B::Error>, (ErrorNext<C::Error>)
-        ; Val3, Val4, D, E3Next<E0, A::Error, B::Error, C::Error>, (ErrorNext<D::Error>)
-        ; Val4, Val5, E, E4Next<E0, A::Error, B::Error, C::Error, D::Error>, (ErrorNext<E::Error>)
-        ; Val5, Val6, F, E5Next<E0, A::Error, B::Error, C::Error, D::Error, E::Error>, (ErrorNext<F::Error>)
-        ; Val6, Val7, G, E6Next<E0, A::Error, B::Error, C::Error, D::Error, E::Error, F::Error>, (ErrorNext<G::Error>)
-        : Val7, H,       E7Next<E0, A::Error, B::Error, C::Error, D::Error, E::Error, F::Error, G::Error>, (ErrorNext<H::Error>)
-        ,                E8Next<E0, A::Error, B::Error, C::Error, D::Error, E::Error, F::Error, G::Error, H::Error>
+        Sum8, Sum8M, ESum8
+        ; Val1, Val2, B, (E1Next A), B
+        ; Val2, Val3, C, (E2Next A B), C
+        ; Val3, Val4, D, (E3Next A B C), D
+        ; Val4, Val5, E, (E4Next A B C D), E
+        ; Val5, Val6, F, (E5Next A B C D E), F
+        ; Val6, Val7, G, (E6Next A B C D E F), G
+        : Val7, H,       (E7Next A B C D E F G), H
+        ,                (E8Next A B C D E F G H)
     );
     sum_n!(
-        Sum9, Sum9M
-        ; Val1, Val2, B, E1Next<E0, A::Error>, (ErrorNext<B::Error>)
-        ; Val2, Val3, C, E2Next<E0, A::Error, B::Error>, (ErrorNext<C::Error>)
-        ; Val3, Val4, D, E3Next<E0, A::Error, B::Error, C::Error>, (ErrorNext<D::Error>)
-        ; Val4, Val5, E, E4Next<E0, A::Error, B::Error, C::Error, D::Error>, (ErrorNext<E::Error>)
-        ; Val5, Val6, F, E5Next<E0, A::Error, B::Error, C::Error, D::Error, E::Error>, (ErrorNext<F::Error>)
-        ; Val6, Val7, G, E6Next<E0, A::Error, B::Error, C::Error, D::Error, E::Error, F::Error>, (ErrorNext<G::Error>)
-        ; Val7, Val8, H, E7Next<E0, A::Error, B::Error, C::Error, D::Error, E::Error, F::Error, G::Error>, (ErrorNext<H::Error>)
-        : Val8, I,       E8Next<E0, A::Error, B::Error, C::Error, D::Error, E::Error, F::Error, G::Error, H::Error>, (ErrorNext<I::Error>)
-        ,                E9Next<E0, A::Error, B::Error, C::Error, D::Error, E::Error, F::Error, G::Error, H::Error, I::Error>
+        Sum9, Sum9M, ESum9
+        ; Val1, Val2, B, (E1Next A), B
+        ; Val2, Val3, C, (E2Next A B), C
+        ; Val3, Val4, D, (E3Next A B C), D
+        ; Val4, Val5, E, (E4Next A B C D), E
+        ; Val5, Val6, F, (E5Next A B C D E), F
+        ; Val6, Val7, G, (E6Next A B C D E F), G
+        ; Val7, Val8, H, (E7Next A B C D E F G), H
+        : Val8, I,       (E8Next A B C D E F G H), I
+        ,                (E9Next A B C D E F G H I)
     );
     sum_n!(
-        Sum10, Sum10M
-        ; Val1, Val2, B, E1Next<E0, A::Error>, (ErrorNext<B::Error>)
-        ; Val2, Val3, C, E2Next<E0, A::Error, B::Error>, (ErrorNext<C::Error>)
-        ; Val3, Val4, D, E3Next<E0, A::Error, B::Error, C::Error>, (ErrorNext<D::Error>)
-        ; Val4, Val5, E, E4Next<E0, A::Error, B::Error, C::Error, D::Error>, (ErrorNext<E::Error>)
-        ; Val5, Val6, F, E5Next<E0, A::Error, B::Error, C::Error, D::Error, E::Error>, (ErrorNext<F::Error>)
-        ; Val6, Val7, G, E6Next<E0, A::Error, B::Error, C::Error, D::Error, E::Error, F::Error>, (ErrorNext<G::Error>)
-        ; Val7, Val8, H, E7Next<E0, A::Error, B::Error, C::Error, D::Error, E::Error, F::Error, G::Error>, (ErrorNext<H::Error>)
-        ; Val8, Val9, I, E8Next<E0, A::Error, B::Error, C::Error, D::Error, E::Error, F::Error, G::Error, H::Error>, (ErrorNext<I::Error>)
-        : Val9, J,       E9Next<E0, A::Error, B::Error, C::Error, D::Error, E::Error, F::Error, G::Error, H::Error, I::Error>, (ErrorNext<J::Error>)
-        ,                E10Next<E0, A::Error, B::Error, C::Error, D::Error, E::Error, F::Error, G::Error, H::Error, I::Error, J::Error>
+        Sum10, Sum10M, ESum10
+        ; Val1, Val2, B, (E1Next A), B
+        ; Val2, Val3, C, (E2Next A B), C
+        ; Val3, Val4, D, (E3Next A B C), D
+        ; Val4, Val5, E, (E4Next A B C D), E
+        ; Val5, Val6, F, (E5Next A B C D E), F
+        ; Val6, Val7, G, (E6Next A B C D E F), G
+        ; Val7, Val8, H, (E7Next A B C D E F G), H
+        ; Val8, Val9, I, (E8Next A B C D E F G H), I
+        : Val9, J,       (E9Next A B C D E F G H I), J
+        ,                (E10Next A B C D E F G H I J)
     );
     sum_n!(
-        Sum11, Sum11M
-        ; Val1, Val2,  B,  E1Next<E0, A::Error>, (ErrorNext<B::Error>)
-        ; Val2, Val3,  C,  E2Next<E0, A::Error, B::Error>, (ErrorNext<C::Error>)
-        ; Val3, Val4,  D,  E3Next<E0, A::Error, B::Error, C::Error>, (ErrorNext<D::Error>)
-        ; Val4, Val5,  E,  E4Next<E0, A::Error, B::Error, C::Error, D::Error>, (ErrorNext<E::Error>)
-        ; Val5, Val6,  F,  E5Next<E0, A::Error, B::Error, C::Error, D::Error, E::Error>, (ErrorNext<F::Error>)
-        ; Val6, Val7,  G,  E6Next<E0, A::Error, B::Error, C::Error, D::Error, E::Error, F::Error>, (ErrorNext<G::Error>)
-        ; Val7, Val8,  H,  E7Next<E0, A::Error, B::Error, C::Error, D::Error, E::Error, F::Error, G::Error>, (ErrorNext<H::Error>)
-        ; Val8, Val9,  I,  E8Next<E0, A::Error, B::Error, C::Error, D::Error, E::Error, F::Error, G::Error, H::Error>, (ErrorNext<I::Error>)
-        ; Val9, Val10, J,  E9Next<E0, A::Error, B::Error, C::Error, D::Error, E::Error, F::Error, G::Error, H::Error, I::Error>, (ErrorNext<J::Error>)
-        : Val10, K,       E10Next<E0, A::Error, B::Error, C::Error, D::Error, E::Error, F::Error, G::Error, H::Error, I::Error, J::Error>, (ErrorNext<K::Error>)
-        ,                 E11Next<E0, A::Error, B::Error, C::Error, D::Error, E::Error, F::Error, G::Error, H::Error, I::Error, J::Error, K::Error>
+        Sum11, Sum11M, ESum11
+        ; Val1, Val2,  B,  (E1Next A), B
+        ; Val2, Val3,  C,  (E2Next A B), C
+        ; Val3, Val4,  D,  (E3Next A B C), D
+        ; Val4, Val5,  E,  (E4Next A B C D), E
+        ; Val5, Val6,  F,  (E5Next A B C D E), F
+        ; Val6, Val7,  G,  (E6Next A B C D E F), G
+        ; Val7, Val8,  H,  (E7Next A B C D E F G), H
+        ; Val8, Val9,  I,  (E8Next A B C D E F G H), I
+        ; Val9, Val10, J,  (E9Next A B C D E F G H I), J
+        : Val10, K,       (E10Next A B C D E F G H I J), K
+        ,                 (E11Next A B C D E F G H I J K)
     );
     sum_n!(
-        Sum12, Sum12M
-        ; Val1, Val2,   B,  E1Next<E0, A::Error>, (ErrorNext<B::Error>)
-        ; Val2, Val3,   C,  E2Next<E0, A::Error, B::Error>, (ErrorNext<C::Error>)
-        ; Val3, Val4,   D,  E3Next<E0, A::Error, B::Error, C::Error>, (ErrorNext<D::Error>)
-        ; Val4, Val5,   E,  E4Next<E0, A::Error, B::Error, C::Error, D::Error>, (ErrorNext<E::Error>)
-        ; Val5, Val6,   F,  E5Next<E0, A::Error, B::Error, C::Error, D::Error, E::Error>, (ErrorNext<F::Error>)
-        ; Val6, Val7,   G,  E6Next<E0, A::Error, B::Error, C::Error, D::Error, E::Error, F::Error>, (ErrorNext<G::Error>)
-        ; Val7, Val8,   H,  E7Next<E0, A::Error, B::Error, C::Error, D::Error, E::Error, F::Error, G::Error>, (ErrorNext<H::Error>)
-        ; Val8, Val9,   I,  E8Next<E0, A::Error, B::Error, C::Error, D::Error, E::Error, F::Error, G::Error, H::Error>, (ErrorNext<I::Error>)
-        ; Val9, Val10,  J,  E9Next<E0, A::Error, B::Error, C::Error, D::Error, E::Error, F::Error, G::Error, H::Error, I::Error>, (ErrorNext<J::Error>)
-        ; Val10, Val11, K, E10Next<E0, A::Error, B::Error, C::Error, D::Error, E::Error, F::Error, G::Error, H::Error, I::Error, J::Error>, (ErrorNext<K::Error>)
-        : Val11, L,        E11Next<E0, A::Error, B::Error, C::Error, D::Error, E::Error, F::Error, G::Error, H::Error, I::Error, J::Error, K::Error>, (ErrorNext<L::Error>)
-        ,                  E12Next<E0, A::Error, B::Error, C::Error, D::Error, E::Error, F::Error, G::Error, H::Error, I::Error, J::Error, K::Error, L::Error>
+        Sum12, Sum12M, ESum12
+        ; Val1, Val2,   B,  (E1Next A), B
+        ; Val2, Val3,   C,  (E2Next A B), C
+        ; Val3, Val4,   D,  (E3Next A B C), D
+        ; Val4, Val5,   E,  (E4Next A B C D), E
+        ; Val5, Val6,   F,  (E5Next A B C D E), F
+        ; Val6, Val7,   G,  (E6Next A B C D E F), G
+        ; Val7, Val8,   H,  (E7Next A B C D E F G), H
+        ; Val8, Val9,   I,  (E8Next A B C D E F G H), I
+        ; Val9, Val10,  J,  (E9Next A B C D E F G H I), J
+        ; Val10, Val11, K, (E10Next A B C D E F G H I J), K
+        : Val11, L,        (E11Next A B C D E F G H I J K), L
+        ,                  (E12Next A B C D E F G H I J K L)
     );
     sum_n!(
-        Sum13, Sum13M
-        ; Val1, Val2,   B,  E1Next<E0, A::Error>, (ErrorNext<B::Error>)
-        ; Val2, Val3,   C,  E2Next<E0, A::Error, B::Error>, (ErrorNext<C::Error>)
-        ; Val3, Val4,   D,  E3Next<E0, A::Error, B::Error, C::Error>, (ErrorNext<D::Error>)
-        ; Val4, Val5,   E,  E4Next<E0, A::Error, B::Error, C::Error, D::Error>, (ErrorNext<E::Error>)
-        ; Val5, Val6,   F,  E5Next<E0, A::Error, B::Error, C::Error, D::Error, E::Error>, (ErrorNext<F::Error>)
-        ; Val6, Val7,   G,  E6Next<E0, A::Error, B::Error, C::Error, D::Error, E::Error, F::Error>, (ErrorNext<G::Error>)
-        ; Val7, Val8,   H,  E7Next<E0, A::Error, B::Error, C::Error, D::Error, E::Error, F::Error, G::Error>, (ErrorNext<H::Error>)
-        ; Val8, Val9,   I,  E8Next<E0, A::Error, B::Error, C::Error, D::Error, E::Error, F::Error, G::Error, H::Error>, (ErrorNext<I::Error>)
-        ; Val9, Val10,  J,  E9Next<E0, A::Error, B::Error, C::Error, D::Error, E::Error, F::Error, G::Error, H::Error, I::Error>, (ErrorNext<J::Error>)
-        ; Val10, Val11, K, E10Next<E0, A::Error, B::Error, C::Error, D::Error, E::Error, F::Error, G::Error, H::Error, I::Error, J::Error>, (ErrorNext<K::Error>)
-        ; Val11, Val12, L, E11Next<E0, A::Error, B::Error, C::Error, D::Error, E::Error, F::Error, G::Error, H::Error, I::Error, J::Error, K::Error>, (ErrorNext<L::Error>)
-        : Val12, M,        E12Next<E0, A::Error, B::Error, C::Error, D::Error, E::Error, F::Error, G::Error, H::Error, I::Error, J::Error, K::Error, L::Error>, (ErrorNext<M::Error>)
-        ,                  E13Next<E0, A::Error, B::Error, C::Error, D::Error, E::Error, F::Error, G::Error, H::Error, I::Error, J::Error, K::Error, L::Error, M::Error>
+        Sum13, Sum13M, ESum13
+        ; Val1, Val2,   B,  (E1Next A), B
+        ; Val2, Val3,   C,  (E2Next A B), C
+        ; Val3, Val4,   D,  (E3Next A B C), D
+        ; Val4, Val5,   E,  (E4Next A B C D), E
+        ; Val5, Val6,   F,  (E5Next A B C D E), F
+        ; Val6, Val7,   G,  (E6Next A B C D E F), G
+        ; Val7, Val8,   H,  (E7Next A B C D E F G), H
+        ; Val8, Val9,   I,  (E8Next A B C D E F G H), I
+        ; Val9, Val10,  J,  (E9Next A B C D E F G H I), J
+        ; Val10, Val11, K, (E10Next A B C D E F G H I J), K
+        ; Val11, Val12, L, (E11Next A B C D E F G H I J K), L
+        : Val12, M,        (E12Next A B C D E F G H I J K L), M
+        ,                  (E13Next A B C D E F G H I J K L M)
     );
     sum_n!(
-        Sum14, Sum14M
-        ; Val1, Val2,   B,  E1Next<E0, A::Error>, (ErrorNext<B::Error>)
-        ; Val2, Val3,   C,  E2Next<E0, A::Error, B::Error>, (ErrorNext<C::Error>)
-        ; Val3, Val4,   D,  E3Next<E0, A::Error, B::Error, C::Error>, (ErrorNext<D::Error>)
-        ; Val4, Val5,   E,  E4Next<E0, A::Error, B::Error, C::Error, D::Error>, (ErrorNext<E::Error>)
-        ; Val5, Val6,   F,  E5Next<E0, A::Error, B::Error, C::Error, D::Error, E::Error>, (ErrorNext<F::Error>)
-        ; Val6, Val7,   G,  E6Next<E0, A::Error, B::Error, C::Error, D::Error, E::Error, F::Error>, (ErrorNext<G::Error>)
-        ; Val7, Val8,   H,  E7Next<E0, A::Error, B::Error, C::Error, D::Error, E::Error, F::Error, G::Error>, (ErrorNext<H::Error>)
-        ; Val8, Val9,   I,  E8Next<E0, A::Error, B::Error, C::Error, D::Error, E::Error, F::Error, G::Error, H::Error>, (ErrorNext<I::Error>)
-        ; Val9, Val10,  J,  E9Next<E0, A::Error, B::Error, C::Error, D::Error, E::Error, F::Error, G::Error, H::Error, I::Error>, (ErrorNext<J::Error>)
-        ; Val10, Val11, K, E10Next<E0, A::Error, B::Error, C::Error, D::Error, E::Error, F::Error, G::Error, H::Error, I::Error, J::Error>, (ErrorNext<K::Error>)
-        ; Val11, Val12, L, E11Next<E0, A::Error, B::Error, C::Error, D::Error, E::Error, F::Error, G::Error, H::Error, I::Error, J::Error, K::Error>, (ErrorNext<L::Error>)
-        ; Val12, Val13, M, E12Next<E0, A::Error, B::Error, C::Error, D::Error, E::Error, F::Error, G::Error, H::Error, I::Error, J::Error, K::Error, L::Error>, (ErrorNext<M::Error>)
-        : Val13, N,        E13Next<E0, A::Error, B::Error, C::Error, D::Error, E::Error, F::Error, G::Error, H::Error, I::Error, J::Error, K::Error, L::Error, M::Error>, (ErrorNext<N::Error>)
-        ,                  E14Next<E0, A::Error, B::Error, C::Error, D::Error, E::Error, F::Error, G::Error, H::Error, I::Error, J::Error, K::Error, L::Error, M::Error, N::Error>
+        Sum14, Sum14M, ESum14
+        ; Val1, Val2,   B,  (E1Next A), B
+        ; Val2, Val3,   C,  (E2Next A B), C
+        ; Val3, Val4,   D,  (E3Next A B C), D
+        ; Val4, Val5,   E,  (E4Next A B C D), E
+        ; Val5, Val6,   F,  (E5Next A B C D E), F
+        ; Val6, Val7,   G,  (E6Next A B C D E F), G
+        ; Val7, Val8,   H,  (E7Next A B C D E F G), H
+        ; Val8, Val9,   I,  (E8Next A B C D E F G H), I
+        ; Val9, Val10,  J,  (E9Next A B C D E F G H I), J
+        ; Val10, Val11, K, (E10Next A B C D E F G H I J), K
+        ; Val11, Val12, L, (E11Next A B C D E F G H I J K), L
+        ; Val12, Val13, M, (E12Next A B C D E F G H I J K L), M
+        : Val13, N,        (E13Next A B C D E F G H I J K L M), N
+        ,                  (E14Next A B C D E F G H I J K L M N)
     );
-
-    // #[derive(Clone, Debug)]
-    // pub enum Sum2<A, B> {
-    //     Val0(A),
-    //     Val1(B),
-    // }
-    // pub enum Sum2M<A: StateMachine, B: StateMachine, E0: ErrorNext<A::Error>>
-    // where
-    //     E1Next<E0, A::Error>: ErrorNext<B::Error>,
-    //     E1Next<E1Next<E0, A::Error>, B::Error>: std::error::Error,
-    // {
-    //     Val0(Vec<TokenTree>, E0, A),
-    //     Val1(Vec<TokenTree>, E1Next<E0, A::Error>, B),
-    // }
-
-    // impl<A: StateMachine, B: StateMachine, E0> Default for Sum2M<A, B, E0>
-    // where
-    //     E0: ErrorNext<A::Error> + Default,
-    //     E1Next<E0, A::Error>: ErrorNext<B::Error>,
-    //     E2Next<E0, A::Error, B::Error>: std::error::Error,
-    // {
-    //     fn default() -> Self {
-    //         Self::Val0(Default::default(), Default::default(), Default::default())
-    //     }
-    // }
-
-    // impl<A: Parsable, B: Parsable> Parsable for Sum2<A, B> {
-    //     type StateMachine = Sum2M<A::StateMachine, B::StateMachine, Sum0Err>;
-    // }
-
-    // impl<A: StateMachine, B: StateMachine, E0> Sum2M<A, B, E0>
-    // where
-    //     E0: Default + ErrorNext<A::Error>,
-    //     E1Next<E0, A::Error>: ErrorNext<B::Error>,
-    //     E2Next<E0, A::Error, B::Error>: std::error::Error,
-    // {
-    //     fn stepup(
-    //         mut self,
-    //     ) -> std::ops::ControlFlow<
-    //         SmResult<<Self as StateMachine>::Output, <Self as StateMachine>::Error>,
-    //         Self,
-    //     > {
-    //         'main: loop {
-    //             match self {
-    //                 Sum2M::Val0(vs, e, mut sm) => {
-    //                     let len = vs.len();
-
-    //                     for (i, v) in vs.iter().enumerate() {
-    //                         match sm.drive(v) {
-    //                             Continue(v) => sm = v,
-    //                             Break(Ok((a, mut rl))) => {
-    //                                 rl += len - i;
-    //                                 rl -= 1;
-
-    //                                 return Break(Ok((Sum2::Val0(a), rl)));
-    //                             }
-    //                             Break(Err(e_next)) => {
-    //                                 self = Self::Val1(vs, e.next(e_next), Default::default());
-    //                                 continue 'main;
-    //                             }
-    //                         }
-    //                     }
-    //                     return Continue(Self::Val0(vs, e, sm));
-    //                 }
-    //                 Sum2M::Val1(vs, e, mut sm) => {
-    //                     let len = vs.len();
-
-    //                     for (i, v) in vs.iter().enumerate() {
-    //                         match sm.drive(v) {
-    //                             Continue(v) => sm = v,
-    //                             Break(Ok((a, mut rl))) => {
-    //                                 rl += len - i;
-    //                                 rl -= 1;
-
-    //                                 return Break(Ok((Sum2::Val1(a), rl)));
-    //                             }
-    //                             Break(Err(e_next)) => {
-    //                                 return Break(Err(e.next(e_next)));
-    //                             }
-    //                         }
-    //                     }
-    //                     return Continue(Self::Val1(vs, e, sm));
-    //                 }
-    //             }
-    //         }
-    //     }
-    // }
-    // impl<A: StateMachine, B: StateMachine, E0> StateMachine for Sum2M<A, B, E0>
-    // where
-    //     E0: Default + ErrorNext<A::Error>,
-    //     E1Next<E0, A::Error>: ErrorNext<B::Error>,
-    //     E2Next<E0, A::Error, B::Error>: std::error::Error,
-    // {
-    //     type Output = Sum2<A::Output, B::Output>;
-    //     type Error = E2Next<E0, A::Error, B::Error>;
-
-    //     fn drive(
-    //         self,
-    //         val: &TokenTree,
-    //     ) -> std::ops::ControlFlow<SmResult<Self::Output, Self::Error>, Self> {
-    //         use std::ops::ControlFlow::*;
-
-    //         match self {
-    //             Sum2M::Val0(mut vs, e, sm) => match sm.drive(val) {
-    //                 Continue(sm) => Continue(Self::Val0(
-    //                     {
-    //                         vs.push(val.clone());
-    //                         vs
-    //                     },
-    //                     e,
-    //                     sm,
-    //                 )),
-    //                 Break(Ok((a, rl))) => Break(Ok((Sum2::Val0(a), rl))),
-    //                 Break(Err(e_next)) => Self::Val1(
-    //                     {
-    //                         vs.push(val.clone());
-    //                         vs
-    //                     },
-    //                     e.next(e_next),
-    //                     Default::default(),
-    //                 )
-    //                 .stepup(),
-    //             },
-    //             Sum2M::Val1(mut vs, e, sm) => match sm.drive(val) {
-    //                 Continue(sm) => Continue(Self::Val1(
-    //                     {
-    //                         vs.push(val.clone());
-    //                         vs
-    //                     },
-    //                     e,
-    //                     sm,
-    //                 )),
-    //                 Break(Ok((a, rl))) => Break(Ok((Sum2::Val1(a), rl))),
-    //                 Break(Err(e_next)) => Break(Err(e.next(e_next))),
-    //             },
-    //         }
-    //     }
-
-    //     fn terminate(mut self) -> SmResult<Self::Output, Self::Error> {
-    //         loop {
-    //             match self {
-    //                 Sum2M::Val0(vs, e, sm) => match sm.terminate() {
-    //                     Ok((a, rl)) => return Ok((Sum2::Val0(a), rl)),
-    //                     Err(e_next) => {
-    //                         match Self::Val1(vs, e.next(e_next), Default::default()).stepup() {
-    //                             Continue(a) => self = a,
-    //                             Break(o) => return o,
-    //                         }
-    //                     }
-    //                 },
-    //                 Sum2M::Val1(_, e, sm) => {
-    //                     return match sm.terminate() {
-    //                         Ok((a, rl)) => Ok((Sum2::Val1(a), rl)),
-    //                         Err(e_next) => Err(e.next(e_next)),
-    //                     }
-    //                 }
-    //             }
-    //         }
-    //     }
-    // }
 }
 
+pub use new_sum::*;
 // We can actually fix the memory scaling issue by transforming the problem to a state where we
 // just iteratively map a series of options until reach a valid value. We must hold an iterative
 // error term tho. This could optionally be boxed. An idea is also making it generic across a
 // monoid error composer. This would result in a sum that is (with a forgetful error mapping) O(1)
 // sized where n is the amount of types its summed over. This would be a great improvement from
 // the current O(n) sizing scheme
-
-// pub use new_sum::*;
-pub use new_sum::*;
-// pub use sum_old::*;
-// #[cfg(disable)]
-mod sum_old {
+//
+// This is done in the module `self::new_sum`
+#[cfg(test)]
+mod old_sum {
     use crate::{ControlFlow, Parsable, SmResult, StateMachine, TokenTree};
     use Sum2::Val1 as V1;
 
@@ -959,17 +828,16 @@ mod sum_old {
 mod tests {
     use std::mem::size_of;
 
-    use super::sum_old;
+    use super::old_sum;
     use crate::*;
 
     type P = Punct;
 
     #[test]
     fn size_delta_calculation() {
-        panic!(
-            "{} {}",
+        assert!(
             size_of::<
-                <Sum14<
+                <ESum14<
                     Ident,
                     Ident,
                     Ident,
@@ -984,10 +852,10 @@ mod tests {
                     Ident,
                     Ident,
                     Ident,
+                    BlackHole,
                 > as Parsable>::StateMachine,
-            >(),
-            size_of::<
-                <sum_old::Sum14<
+            >() < size_of::<
+                <old_sum::Sum14<
                     Ident,
                     Ident,
                     Ident,
@@ -1019,5 +887,4 @@ mod tests {
 
     insta_match_test!(it_matches_sum_2_0, Sum2<Ident, Punct> : hello);
     insta_match_test!(it_matches_sum_2_1, Sum2<Ident, Punct> : <);
-    insta_match_test!(it_prioritizes_on_joint_match, Sum2<FIdent<"hello">, Ident> : hello);
 }

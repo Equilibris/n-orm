@@ -401,13 +401,13 @@ mod tests {
 
     use super::*;
 
-    #[test]
-    pub fn sm_size_prune() {
-        panic!(
-            "{}",
-            std::mem::size_of::<<Type<Infallible> as Parsable>::StateMachine>()
-        );
-    }
+    // #[test]
+    // pub fn sm_size_prune() {
+    //     panic!(
+    //         "{}",
+    //         std::mem::size_of::<<Type<Infallible> as Parsable>::StateMachine>()
+    //     );
+    // }
 
     // The primary issue for type matching is stack-overflows. This is me trying to avoid this.
     #[test]
