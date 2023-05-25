@@ -6,7 +6,7 @@ mod new_sum {
     use crate::*;
     use std::ops::ControlFlow::*;
 
-    pub type E1Next<T, A> = <T as ErrorNext<A>>::Next;
+    pub type E1Next<T, A> = <T as Cons<A>>::Next;
     pub type E2Next<T, A, B> = E1Next<E1Next<T, A>, B>;
     pub type E3Next<T, A, B, C> = E1Next<E2Next<T, A, B>, C>;
     pub type E4Next<T, A, B, C, D> = E1Next<E3Next<T, A, B, C>, D>;
@@ -26,7 +26,8 @@ mod new_sum {
     pub type E14Next<T, A, B, C, D, E, F, G, H, I, J, K, L, M, N> =
         E1Next<E13Next<T, A, B, C, D, E, F, G, H, I, J, K, L, M>, N>;
 
-    pub trait ErrorNext<T> {
+    // This may be able to be used to impl monads and TypeClasses in Rust
+    pub trait Cons<T> {
         type Next;
 
         fn next(self, v: T) -> Self::Next;
@@ -35,7 +36,7 @@ mod new_sum {
     #[derive(Default, Debug, thiserror::Error)]
     #[error("BlackHole")]
     pub struct BlackHole;
-    impl<T> ErrorNext<T> for BlackHole {
+    impl<T> Cons<T> for BlackHole {
         type Next = BlackHole;
 
         fn next(self, _: T) -> Self::Next {
@@ -46,7 +47,7 @@ mod new_sum {
     #[derive(Default, Debug, thiserror::Error)]
     #[error("")]
     pub struct Sum0Err {}
-    impl<T: std::error::Error> ErrorNext<T> for Sum0Err {
+    impl<T: std::error::Error> Cons<T> for Sum0Err {
         type Next = Sum1Err<T>;
 
         fn next(self, a: T) -> Self::Next {
@@ -65,7 +66,7 @@ mod new_sum {
         ($name:ident, $next:ident, $err:literal, $($p:ident $s:ident),*; $fp:ident $fs:ident) => {
             sum_n_err!(!$name, $err, $($p $s),*; $fp $fs);
 
-            impl<$($s: std::error::Error,)*$fs : std::error::Error> ErrorNext<$fs> for $name <$($s),*> {
+            impl<$($s: std::error::Error,)*$fs : std::error::Error> Cons<$fs> for $name <$($s),*> {
                 type Next = $next<$($s,)*$fs >;
 
                 fn next(self, $fp: $fs) -> Self::Next {
@@ -128,11 +129,11 @@ mod new_sum {
                 E0
             >
             where
-                E0: ErrorNext<SmErr<A>> + Default,
+                E0: Cons<SmErr<A>> + Default,
                 $(
-                    $fst<E0, $(SmErr<$err_type>,)*>: ErrorNext<SmErr<$bound>>,
+                    $fst<E0, $(SmErr<$err_type>,)*>: Cons<SmErr<$bound>>,
                 )*
-                $f_fst<E0, $(SmErr<$f_err_type>,)*>: ErrorNext<SmErr<$f_bound>>,
+                $f_fst<E0, $(SmErr<$f_err_type>,)*>: Cons<SmErr<$f_bound>>,
                 $ff_fst<E0, $(SmErr<$final>, )*>: std::error::Error,
             {
                 type StateMachine = $mname<
@@ -156,11 +157,11 @@ mod new_sum {
                 E0
             >
             where
-                E0: ErrorNext<A::Error>,
+                E0: Cons<A::Error>,
                 $(
-                    $fst<E0, $($err_type::Error,)*>: ErrorNext<$bound::Error>,
+                    $fst<E0, $($err_type::Error,)*>: Cons<$bound::Error>,
                 )*
-                $f_fst<E0, $($f_err_type::Error,)*>: ErrorNext<$f_bound::Error>,
+                $f_fst<E0, $($f_err_type::Error,)*>: Cons<$f_bound::Error>,
                 $ff_fst<E0, $($final::Error, )*>: std::error::Error,
             {
                 Val0(Vec<TokenTree>, E0, A),
@@ -178,11 +179,11 @@ mod new_sum {
                 E0
             > Default for $mname<A, $($gen,)* $f_gen, E0>
             where
-                E0: Default + ErrorNext<A::Error>,
+                E0: Default + Cons<A::Error>,
                 $(
-                    $fst<E0, $($err_type::Error,)*>: ErrorNext<$bound::Error>,
+                    $fst<E0, $($err_type::Error,)*>: Cons<$bound::Error>,
                 )*
-                $f_fst<E0, $($f_err_type::Error,)*>: ErrorNext<$f_bound::Error>,
+                $f_fst<E0, $($f_err_type::Error,)*>: Cons<$f_bound::Error>,
                 $ff_fst<E0, $($final::Error,)*>: std::error::Error,
             {
                 fn default() -> Self {
@@ -214,11 +215,11 @@ mod new_sum {
                 E0
             > $mname<A, $($gen,)* $f_gen, E0>
             where
-                E0: Default + ErrorNext<A::Error>,
+                E0: Default + Cons<A::Error>,
                 $(
-                    $fst<E0, $($err_type::Error,)*>: ErrorNext<$bound::Error>,
+                    $fst<E0, $($err_type::Error,)*>: Cons<$bound::Error>,
                 )*
-                $f_fst<E0, $($f_err_type::Error,)*>: ErrorNext<$f_bound::Error>,
+                $f_fst<E0, $($f_err_type::Error,)*>: Cons<$f_bound::Error>,
                 $ff_fst<E0, $($final::Error,)*>: std::error::Error,
             {
                 fn stepup(
@@ -307,11 +308,11 @@ mod new_sum {
                 E0
             > StateMachine for $mname<A, $($gen,)* $f_gen, E0>
             where
-                E0: Default + ErrorNext<A::Error>,
+                E0: Default + Cons<A::Error>,
                 $(
-                    $fst<E0, $($err_type::Error,)*>: ErrorNext<$bound::Error>,
+                    $fst<E0, $($err_type::Error,)*>: Cons<$bound::Error>,
                 )*
-                $f_fst<E0, $($f_err_type::Error,)*>: ErrorNext<$f_bound::Error>,
+                $f_fst<E0, $($f_err_type::Error,)*>: Cons<$f_bound::Error>,
                 $ff_fst<E0, $($final::Error,)*>: std::error::Error,
             {
                 type Output = $name<A::Output, $($gen::Output,)* $f_gen::Output>;
