@@ -29,7 +29,90 @@ mod unions;
 mod use_declarations;
 mod visibility;
 mod where_clause;
+mod ad_hoc_type {
+    use crate::*;
 
+    pub struct AdHocType(pub Vec<TokenTree>);
+
+    #[derive(Debug, thiserror::Error)]
+    pub enum AdHocTypeErr {
+        #[error("Expected {} but got termination", ">".repeat(*.0))]
+        UnexpectedTermination(usize),
+
+        #[error("Type cannot be zero length")]
+        ZeroLengthType,
+    }
+
+    #[derive(Default)]
+    pub struct AdHotTypeM {
+        content: Vec<TokenTree>,
+        depth: usize,
+    }
+    impl StateMachine for AdHotTypeM {
+        type Output = AdHocType;
+        type Error = AdHocTypeErr;
+
+        fn drive(self, val: &TokenTree) -> ControlFlow<SmResult<Self::Output, Self::Error>, Self> {
+            let Self { mut content, depth } = self;
+
+            match val {
+                TokenTree::Punct(a) if depth == 0 => match a.as_char() {
+                    '<' => ControlFlow::Continue(Self {
+                        content: {
+                            content.push(val.clone());
+                            content
+                        },
+                        depth: depth + 1,
+                    }),
+
+                    ',' => ControlFlow::Break(Ok((AdHocType(content), 1))),
+                    '>' => ControlFlow::Break(Ok((AdHocType(content), 1))),
+
+                    _ => ControlFlow::Continue(Self {
+                        content: {
+                            content.push(val.clone());
+                            content
+                        },
+                        depth,
+                    }),
+                },
+                TokenTree::Punct(a) if a.as_char() == '>' => ControlFlow::Continue(Self {
+                    content: {
+                        content.push(val.clone());
+                        content
+                    },
+                    depth: depth - 1,
+                }),
+                TokenTree::Punct(a) if a.as_char() == '<' => ControlFlow::Continue(Self {
+                    content: {
+                        content.push(val.clone());
+                        content
+                    },
+                    depth: depth + 1,
+                }),
+                _ => ControlFlow::Continue(Self {
+                    content: {
+                        content.push(val.clone());
+                        content
+                    },
+                    depth,
+                }),
+            }
+        }
+
+        fn terminate(self) -> SmResult<Self::Output, Self::Error> {
+            let Self { content, depth } = self;
+
+            if depth == 0 {
+                Ok((AdHocType(content), 0))
+            } else if content.len() == 0 {
+                Err(AdHocTypeErr::ZeroLengthType)
+            } else {
+                Err(AdHocTypeErr::UnexpectedTermination(depth))
+            }
+        }
+    }
+}
 mod punctual {
     use crate::*;
 

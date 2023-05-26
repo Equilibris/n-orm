@@ -8,7 +8,7 @@ pub struct Trait<T: Parsable, Ty: Parsable> {
     pub id: Ident,
     pub genetic_params: Option<GenericParams<T>>,
     pub bound: Option<TypeParamBounds<T>>,
-    pub where_clause: Option<WhereClause<T>>,
+    pub where_clause: Option<WhereClause<T, Ty>>,
 
     pub attrs: InnerAttrs<T>,
     pub associate_items: AssociateItems<T, Ty>,
@@ -20,7 +20,7 @@ impl<T: Parsable, Ty: Parsable> MappedParse for Trait<T, Ty> {
         Identifier,
         Option<GenericParams<T>>,
         Option<(Colon, Option<TypeParamBounds<T>>)>,
-        Option<WhereClause<T>>,
+        Option<WhereClause<T, Ty>>,
         Brace<WithInnerAttrs<T, AssociateItems<T, Ty>>>,
     );
 

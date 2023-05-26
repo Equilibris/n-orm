@@ -5,7 +5,7 @@ use std::fmt::Debug;
 pub struct Enumeration<T: Parsable, Ty: Parsable> {
     pub id: Ident,
     pub generic_params: Option<GenericParams<T>>,
-    pub where_clause: Option<WhereClause<T>>,
+    pub where_clause: Option<WhereClause<T, Ty>>,
 
     pub items: EnumItems<T, Ty>,
 }
@@ -29,7 +29,7 @@ impl<T: Parsable, Ty: Parsable> MappedParse for Enumeration<T, Ty> {
         KwEnum,
         Identifier,
         Option<GenericParams<T>>,
-        Option<WhereClause<T>>,
+        Option<WhereClause<T, Ty>>,
         Brace<EnumItems<T, Ty>>,
     );
 

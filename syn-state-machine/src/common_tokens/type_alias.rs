@@ -6,10 +6,10 @@ pub struct TypeAlias<T: Parsable, Ty: Parsable> {
     pub id: Ident,
     pub params: Option<GenericParams<T>>,
     pub bounds: Option<TypeParamBounds<T>>,
-    pub pre_where_clause: Option<WhereClause<T>>,
+    pub pre_where_clause: Option<WhereClause<T, Ty>>,
 
     pub ty: Option<SmOut<Ty>>,
-    pub post_where_clause: Option<WhereClause<T>>,
+    pub post_where_clause: Option<WhereClause<T, Ty>>,
 }
 impl<T: Parsable, Ty: Parsable> Debug for TypeAlias<T, Ty>
 where
@@ -33,8 +33,8 @@ impl<T: Parsable, Ty: Parsable> MappedParse for TypeAlias<T, Ty> {
         Identifier,
         Option<GenericParams<T>>,
         Option<(Colon, TypeParamBounds<T>)>,
-        Option<WhereClause<T>>,
-        Option<(Eq, Ty, Option<WhereClause<T>>)>,
+        Option<WhereClause<T, Ty>>,
+        Option<(Eq, Ty, Option<WhereClause<T, Ty>>)>,
         Semi,
     );
 

@@ -9,7 +9,7 @@ pub struct Function<T: Parsable, Ty: Parsable> {
     pub ident: Ident,
 
     pub generic_params: Option<GenericParams<T>>,
-    pub where_clause: Option<WhereClause<T>>,
+    pub where_clause: Option<WhereClause<T, Ty>>,
 
     pub self_param: Option<WithAttrs<T, SelfParam<Ty>>>,
     pub args: Vec<WithAttrs<T, FunctionParam<T, Ty>>>,
@@ -43,7 +43,7 @@ impl<T: Parsable, Ty: Parsable> MappedParse for Function<T, Ty> {
         Option<GenericParams<T>>,
         Paren<FunctionParameters<T, Ty>>,
         Option<FunctionReturnType<Ty>>,
-        Option<WhereClause<T>>,
+        Option<WhereClause<T, Ty>>,
         Sum2<BlockExpression, Semi>,
     );
 

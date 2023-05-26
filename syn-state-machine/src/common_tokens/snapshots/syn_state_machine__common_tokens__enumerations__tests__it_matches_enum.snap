@@ -40,21 +40,8 @@ Ok(
                         TypeBoundWhereClauseItem(
                             TypeBoundWhereClauseItem {
                                 for: None,
-                                ty: NoBounds(
-                                    TypePath(
-                                        TypePath {
-                                            leading: false,
-                                            segments: [
-                                                Simple {
-                                                    id: Id(
-                                                        Ident(
-                                                            F,
-                                                        ),
-                                                    ),
-                                                },
-                                            ],
-                                        },
-                                    ),
+                                ty: Ident(
+                                    F,
                                 ),
                                 bounds: Some(
                                     TypeParamBounds(
