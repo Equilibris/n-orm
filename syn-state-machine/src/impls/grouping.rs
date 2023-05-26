@@ -1,8 +1,38 @@
 use std::marker::PhantomData;
 
 use proc_macro2::Delimiter;
+pub use proc_macro2::Group as DelimTokenTree;
 
 use crate::*;
+
+impl Parsable for DelimTokenTree {
+    type StateMachine = DelimTokenTreeM;
+}
+#[derive(Default)]
+pub struct DelimTokenTreeM;
+impl StateMachine for DelimTokenTreeM {
+    type Output = DelimTokenTree;
+    type Error = SimpleGroupError;
+
+    fn drive(self, val: &TokenTree) -> ControlFlow<SmResult<Self::Output, Self::Error>, Self> {
+        ControlFlow::Break(match val {
+            TokenTree::Group(a) => Ok((a.clone(), 0)),
+            a => Err(SimpleGroupError::InvalidToken(a.clone())),
+        })
+    }
+
+    fn terminate(self) -> SmResult<Self::Output, Self::Error> {
+        Err(SimpleGroupError::Termination)
+    }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum SimpleGroupError {
+    #[error("Expected grouping but got: {}", .0)]
+    InvalidToken(TokenTree),
+    #[error("Expected grouping but got termination")]
+    Termination,
+}
 
 /// Matches a general grouping of either (), [], or {}
 pub struct Group<T: Parsable>(pub SmOut<T>, pub Delimiter);

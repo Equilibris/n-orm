@@ -279,7 +279,7 @@ impl<T: Parsable> MappedParse for ArrayType<T> {
     type Error = SmErr<Self::Source>;
 
     fn map(
-        src: SmOut<Self::Source>,
+        _: SmOut<Self::Source>,
     ) -> Result<<Self as MappedParse>::Output, <Self as MappedParse>::Error> {
         todo!()
     }

@@ -1,10 +1,10 @@
 ---
 source: syn-state-machine/src/common_tokens/use_declarations.rs
-expression: "crate::parse::<Use>(::quote::quote! { use hello :: world as h ; })"
+expression: "crate::parse::<UseDeclaration>(::quote::quote! { use hello :: world as h ; })"
 ---
 Ok(
     (
-        Use(
+        UseDeclaration(
             Standard(
                 SimplePath {
                     leading_double_colon: false,

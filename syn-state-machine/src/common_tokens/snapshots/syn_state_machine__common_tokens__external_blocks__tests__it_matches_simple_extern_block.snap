@@ -1,0 +1,141 @@
+---
+source: syn-state-machine/src/common_tokens/external_blocks.rs
+expression: "crate::parse::<ExternBlock<Infallible,\n        MBox<Type<Infallible>>>>(::quote::quote! {\n            extern \"C\"\n            { fn foo(x : i32) ; fn with_name(format : * const u8) ; }\n        })"
+---
+Ok(
+    (
+        ExternBlock {
+            unsafe: false,
+            abi: Some(
+                StringLit {
+                    raw: "\"C\"",
+                    value: None,
+                    num_hashes: None,
+                    start_suffix: 3,
+                },
+            ),
+            attrs: [],
+            items: [
+                Function(
+                    [],
+                    None,
+                    Function {
+                        qualifiers: FunctionQualifiers {
+                            const: false,
+                            async: false,
+                            unsafe: false,
+                            extern: None,
+                        },
+                        ident: Ident(
+                            foo,
+                        ),
+                        generic_params: None,
+                        where_clause: None,
+                        self_param: None,
+                        args: [
+                            (
+                                [],
+                                Patterned(
+                                    PatternWithoutRange(
+                                        IdentifierPattern(
+                                            IdentifierPattern {
+                                                ref: false,
+                                                mut: false,
+                                                id: Ident(
+                                                    x,
+                                                ),
+                                                at_pattern: None,
+                                            },
+                                        ),
+                                    ),
+                                    Val0(
+                                        NoBounds(
+                                            TypePath(
+                                                TypePath {
+                                                    leading: false,
+                                                    segments: [
+                                                        Simple {
+                                                            id: Id(
+                                                                Ident(
+                                                                    i32,
+                                                                ),
+                                                            ),
+                                                        },
+                                                    ],
+                                                },
+                                            ),
+                                        ),
+                                    ),
+                                ),
+                            ),
+                        ],
+                        returns: None,
+                        body: None,
+                    },
+                ),
+                Function(
+                    [],
+                    None,
+                    Function {
+                        qualifiers: FunctionQualifiers {
+                            const: false,
+                            async: false,
+                            unsafe: false,
+                            extern: None,
+                        },
+                        ident: Ident(
+                            with_name,
+                        ),
+                        generic_params: None,
+                        where_clause: None,
+                        self_param: None,
+                        args: [
+                            (
+                                [],
+                                Patterned(
+                                    PatternWithoutRange(
+                                        IdentifierPattern(
+                                            IdentifierPattern {
+                                                ref: false,
+                                                mut: false,
+                                                id: Ident(
+                                                    format,
+                                                ),
+                                                at_pattern: None,
+                                            },
+                                        ),
+                                    ),
+                                    Val0(
+                                        NoBounds(
+                                            RawPointer(
+                                                Const(
+                                                    TypePath(
+                                                        TypePath {
+                                                            leading: false,
+                                                            segments: [
+                                                                Simple {
+                                                                    id: Id(
+                                                                        Ident(
+                                                                            u8,
+                                                                        ),
+                                                                    ),
+                                                                },
+                                                            ],
+                                                        },
+                                                    ),
+                                                ),
+                                            ),
+                                        ),
+                                    ),
+                                ),
+                            ),
+                        ],
+                        returns: None,
+                        body: None,
+                    },
+                ),
+            ],
+        },
+        0,
+    ),
+)

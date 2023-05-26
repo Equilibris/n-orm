@@ -12,12 +12,13 @@ pub enum UseTree {
 }
 
 impl MappedParse for UseTree {
-    type Source = Sum2<
+    type Source = Sum3<
         (
             Option<(SimplePathOrNone, DoubleColon)>,
             Brace<(Interlace<UseTree, Comma>, Option<Comma>)>,
         ),
-        Sum2<(Option<(SimplePathOrNone, DoubleColon)>, Star), (SimplePath, AsClause)>,
+        (Option<(SimplePathOrNone, DoubleColon)>, Star),
+        (SimplePath, AsClause),
     >;
 
     type Output = Self;
@@ -26,10 +27,10 @@ impl MappedParse for UseTree {
     fn map(
         src: SmOut<Self::Source>,
     ) -> Result<<Self as MappedParse>::Output, <Self as MappedParse>::Error> {
-        use Sum2::*;
+        use Sum3::*;
 
         Ok(match src {
-            Val1(Val1(a)) => Self::Standard(a.0, a.1.map(|(_, a)| a)),
+            Val2(a) => Self::Standard(a.0, a.1.map(|(_, a)| a)),
             Val0(a) => Self::Recursion {
                 name: match a.0 {
                     Some(a) => a.0,
@@ -37,7 +38,7 @@ impl MappedParse for UseTree {
                 },
                 deep: a.1 .0 .0 .0,
             },
-            Val1(Val0((a, _))) => Self::Star({
+            Val1((a, _)) => Self::Star({
                 match a {
                     Some(a) => a.0,
                     None => SimplePathOrNone::default(),
@@ -52,9 +53,9 @@ impl MappedParse for UseTree {
 }
 
 #[derive(Debug)]
-pub struct Use(pub UseTree);
+pub struct UseDeclaration(pub UseTree);
 
-impl MappedParse for Use {
+impl MappedParse for UseDeclaration {
     type Source = (KwUse, UseTree, Semi);
 
     type Output = Self;
@@ -74,11 +75,9 @@ impl MappedParse for Use {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::*;
-    use quote::quote;
 
-    insta_match_test!(it_matches_simple_path, Use : use hello::world; );
-    insta_match_test!(it_matches_simple_path_as, Use : use hello::world as h; );
-    insta_match_test!(it_matches_star_path, Use : use hello::*; );
-    insta_match_test!(it_matches_complex_path, Use :  use { hello::*, world::hi as Hi, nested::{ hello::world, hi }, }; );
+    insta_match_test!(it_matches_simple_path, UseDeclaration : use hello::world; );
+    insta_match_test!(it_matches_simple_path_as, UseDeclaration : use hello::world as h; );
+    insta_match_test!(it_matches_star_path, UseDeclaration : use hello::*; );
+    insta_match_test!(it_matches_complex_path, UseDeclaration :  use { hello::*, world::hi as Hi, nested::{ hello::world, hi }, }; );
 }
