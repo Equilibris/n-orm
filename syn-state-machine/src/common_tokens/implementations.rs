@@ -168,7 +168,7 @@ mod tests {
         }
     );
     insta_match_test!(
-        it_matches_simple_trait, Implementation <Infallible, Type<Infallible>>:
+        it_matches_simple_trait, Implementation <Infallible, TypePath<Ident>>:
 
         unsafe impl<T: Copy> Copy for Option<T> {}
     );
