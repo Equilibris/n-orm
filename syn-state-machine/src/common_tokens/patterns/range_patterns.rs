@@ -1,15 +1,15 @@
 use super::super::*;
 use crate::*;
 
-pub enum RangePattern<T: Parsable> {
-    RangeInclusivePattern(RangeInclusivePattern<T>),
-    RangeFromPattern(RangeFromPattern<T>),
-    RangeToInclusivePattern(RangeToInclusivePattern<T>),
-    ObsoleteRangePattern(ObsoleteRangePattern<T>),
+pub enum RangePattern<Ty: Parsable> {
+    RangeInclusivePattern(RangeInclusivePattern<Ty>),
+    RangeFromPattern(RangeFromPattern<Ty>),
+    RangeToInclusivePattern(RangeToInclusivePattern<Ty>),
+    ObsoleteRangePattern(ObsoleteRangePattern<Ty>),
 }
-impl<T: Parsable> Debug for RangePattern<T>
+impl<Ty: Parsable> Debug for RangePattern<Ty>
 where
-    SmOut<T>: Debug,
+    SmOut<Ty>: Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -27,12 +27,12 @@ where
         }
     }
 }
-impl<T: Parsable> MappedParse for RangePattern<T> {
+impl<Ty: Parsable> MappedParse for RangePattern<Ty> {
     type Source = Sum4<
-        RangeInclusivePattern<T>,
-        RangeToInclusivePattern<T>,
-        ObsoleteRangePattern<T>,
-        RangeFromPattern<T>,
+        RangeInclusivePattern<Ty>,
+        RangeToInclusivePattern<Ty>,
+        ObsoleteRangePattern<Ty>,
+        RangeFromPattern<Ty>,
     >;
 
     type Output = Self;
@@ -54,10 +54,13 @@ impl<T: Parsable> MappedParse for RangePattern<T> {
     }
 }
 
-pub struct RangeInclusivePattern<T: Parsable>(pub RangePatternBound<T>, pub RangePatternBound<T>);
-impl<T: Parsable> Debug for RangeInclusivePattern<T>
+pub struct RangeInclusivePattern<Ty: Parsable>(
+    pub RangePatternBound<Ty>,
+    pub RangePatternBound<Ty>,
+);
+impl<Ty: Parsable> Debug for RangeInclusivePattern<Ty>
 where
-    SmOut<T>: Debug,
+    SmOut<Ty>: Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_tuple("RangeInclusivePattern")
@@ -66,8 +69,8 @@ where
             .finish()
     }
 }
-impl<T: Parsable> MappedParse for RangeInclusivePattern<T> {
-    type Source = (RangePatternBound<T>, DotDotEq, RangePatternBound<T>);
+impl<Ty: Parsable> MappedParse for RangeInclusivePattern<Ty> {
+    type Source = (RangePatternBound<Ty>, DotDotEq, RangePatternBound<Ty>);
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -83,17 +86,17 @@ impl<T: Parsable> MappedParse for RangeInclusivePattern<T> {
     }
 }
 
-pub struct RangeFromPattern<T: Parsable>(pub RangePatternBound<T>);
-impl<T: Parsable> Debug for RangeFromPattern<T>
+pub struct RangeFromPattern<Ty: Parsable>(pub RangePatternBound<Ty>);
+impl<Ty: Parsable> Debug for RangeFromPattern<Ty>
 where
-    SmOut<T>: Debug,
+    SmOut<Ty>: Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_tuple("RangeFromPattern").field(&self.0).finish()
     }
 }
-impl<T: Parsable> MappedParse for RangeFromPattern<T> {
-    type Source = (RangePatternBound<T>, DotDot);
+impl<Ty: Parsable> MappedParse for RangeFromPattern<Ty> {
+    type Source = (RangePatternBound<Ty>, DotDot);
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -109,10 +112,10 @@ impl<T: Parsable> MappedParse for RangeFromPattern<T> {
     }
 }
 
-pub struct RangeToInclusivePattern<T: Parsable>(pub RangePatternBound<T>);
-impl<T: Parsable> Debug for RangeToInclusivePattern<T>
+pub struct RangeToInclusivePattern<Ty: Parsable>(pub RangePatternBound<Ty>);
+impl<Ty: Parsable> Debug for RangeToInclusivePattern<Ty>
 where
-    SmOut<T>: Debug,
+    SmOut<Ty>: Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_tuple("RangeToInclusivePattern")
@@ -120,8 +123,8 @@ where
             .finish()
     }
 }
-impl<T: Parsable> MappedParse for RangeToInclusivePattern<T> {
-    type Source = (DotDotEq, RangePatternBound<T>);
+impl<Ty: Parsable> MappedParse for RangeToInclusivePattern<Ty> {
+    type Source = (DotDotEq, RangePatternBound<Ty>);
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -137,10 +140,10 @@ impl<T: Parsable> MappedParse for RangeToInclusivePattern<T> {
     }
 }
 
-pub struct ObsoleteRangePattern<T: Parsable>(pub RangePatternBound<T>, pub RangePatternBound<T>);
-impl<T: Parsable> Debug for ObsoleteRangePattern<T>
+pub struct ObsoleteRangePattern<Ty: Parsable>(pub RangePatternBound<Ty>, pub RangePatternBound<Ty>);
+impl<Ty: Parsable> Debug for ObsoleteRangePattern<Ty>
 where
-    SmOut<T>: Debug,
+    SmOut<Ty>: Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_tuple("ObsoleteRangePattern")
@@ -149,8 +152,8 @@ where
             .finish()
     }
 }
-impl<T: Parsable> MappedParse for ObsoleteRangePattern<T> {
-    type Source = (RangePatternBound<T>, Elipsis, RangePatternBound<T>);
+impl<Ty: Parsable> MappedParse for ObsoleteRangePattern<Ty> {
+    type Source = (RangePatternBound<Ty>, Elipsis, RangePatternBound<Ty>);
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -166,16 +169,16 @@ impl<T: Parsable> MappedParse for ObsoleteRangePattern<T> {
     }
 }
 
-pub enum RangePatternBound<T: Parsable> {
+pub enum RangePatternBound<Ty: Parsable> {
     CharLit(CharLit),
     ByteLit(ByteLit),
     SignedIntegerLit(SignedIntegerLit),
     SignedFloatLit(SignedFloatLit),
-    PathExpression(PathExpression<T>),
+    PathExpression(PathExpression<Ty>),
 }
-impl<T: Parsable> Debug for RangePatternBound<T>
+impl<Ty: Parsable> Debug for RangePatternBound<Ty>
 where
-    SmOut<T>: Debug,
+    SmOut<Ty>: Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -187,8 +190,8 @@ where
         }
     }
 }
-impl<T: Parsable> MappedParse for RangePatternBound<T> {
-    type Source = Sum5<CharLit, ByteLit, SignedIntegerLit, SignedFloatLit, PathExpression<T>>;
+impl<Ty: Parsable> MappedParse for RangePatternBound<Ty> {
+    type Source = Sum5<CharLit, ByteLit, SignedIntegerLit, SignedFloatLit, PathExpression<Ty>>;
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -214,8 +217,8 @@ impl<T: Parsable> MappedParse for RangePatternBound<T> {
 mod tests {
     use super::*;
 
-    insta_match_test!(it_matches_inclusive, RangePattern <Infallible>: 0..=10);
-    insta_match_test!(it_matches_from, RangePattern <Infallible>: 0..);
-    insta_match_test!(it_matches_to, RangePattern <Infallible>: ..=0);
-    insta_match_test!(it_matches_obsolete, RangePattern <Infallible>: 0...0);
+    insta_match_test!(it_matches_inclusive, RangePattern<Infallible>: 0..=0);
+    insta_match_test!(it_matches_from,      RangePattern<Infallible>: 0..  );
+    insta_match_test!(it_matches_to,        RangePattern<Infallible>:  ..=0);
+    insta_match_test!(it_matches_obsolete,  RangePattern<Infallible>: 0...0);
 }

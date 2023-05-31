@@ -1,0 +1,34 @@
+---
+source: syn-state-machine/src/common_tokens/generic_args.rs
+expression: "crate::parse::<GenericArgs<TypePath<Infallible>>>(::quote::quote! {\n            < hello :: world >\n        })"
+---
+Ok(
+    (
+        GenericArgs(
+            [
+                Type(
+                    TypePath {
+                        leading: false,
+                        segments: [
+                            Simple {
+                                id: Id(
+                                    Ident(
+                                        hello,
+                                    ),
+                                ),
+                            },
+                            Simple {
+                                id: Id(
+                                    Ident(
+                                        world,
+                                    ),
+                                ),
+                            },
+                        ],
+                    },
+                ),
+            ],
+        ),
+        0,
+    ),
+)

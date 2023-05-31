@@ -2,13 +2,13 @@ use super::super::*;
 use crate::*;
 use std::fmt::Debug;
 
-pub struct TypePathFn<T: Parsable> {
-    pub args: Vec<Type<T>>,
-    pub out: Option<Type<T>>,
+pub struct TypePathFn<Ty: Parsable> {
+    pub args: Vec<SmOut<Ty>>,
+    pub out: Option<SmOut<Ty>>,
 }
-impl<T: Parsable> Debug for TypePathFn<T>
+impl<Ty: Parsable> Debug for TypePathFn<Ty>
 where
-    SmOut<T>: Debug,
+    SmOut<Ty>: Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("TypePathFn")
@@ -17,8 +17,8 @@ where
             .finish()
     }
 }
-impl<T: Parsable> MappedParse for TypePathFn<T> {
-    type Source = (Paren<TypePathFnInputs<T>>, Option<(Arrow, Type<T>)>);
+impl<Ty: Parsable> MappedParse for TypePathFn<Ty> {
+    type Source = (Paren<TypePathFnInputs<Ty>>, Option<(Arrow, Ty)>);
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -36,17 +36,17 @@ impl<T: Parsable> MappedParse for TypePathFn<T> {
         src
     }
 }
-pub struct TypePathFnInputs<T: Parsable>(pub Vec<Type<T>>);
-impl<T: Parsable> Debug for TypePathFnInputs<T>
+pub struct TypePathFnInputs<Ty: Parsable>(pub Vec<SmOut<Ty>>);
+impl<Ty: Parsable> Debug for TypePathFnInputs<Ty>
 where
-    SmOut<T>: Debug,
+    SmOut<Ty>: Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_tuple("TypePathFnInputs").field(&self.0).finish()
     }
 }
-impl<T: Parsable> MappedParse for TypePathFnInputs<T> {
-    type Source = (Interlace<Type<T>, Comma>, Option<Comma>);
+impl<Ty: Parsable> MappedParse for TypePathFnInputs<Ty> {
+    type Source = (Interlace<Ty, Comma>, Option<Comma>);
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -62,22 +62,23 @@ impl<T: Parsable> MappedParse for TypePathFnInputs<T> {
     }
 }
 
-pub enum TypePathSegment<T: Parsable> {
+// Used in path/qualified
+pub enum TypePathSegment<Ty: Parsable> {
     Simple {
         id: PathIdentSegment,
     },
     Generic {
         id: PathIdentSegment,
-        generic_args: GenericArgs<T>,
+        generic_args: GenericArgs<Ty>,
     },
     TypePathFn {
         id: PathIdentSegment,
-        path_fn: TypePathFn<T>,
+        path_fn: TypePathFn<Ty>,
     },
 }
-impl<T: Parsable> Debug for TypePathSegment<T>
+impl<Ty: Parsable> Debug for TypePathSegment<Ty>
 where
-    SmOut<T>: Debug,
+    SmOut<Ty>: Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -95,12 +96,12 @@ where
         }
     }
 }
-impl<T: Parsable> MappedParse for TypePathSegment<T> {
+impl<Ty: Parsable> MappedParse for TypePathSegment<Ty> {
     type Source = (
         PathIdentSegment,
         Option<(
             Option<DoubleColon>,
-            MBox<Sum2<GenericArgs<T>, TypePathFn<T>>>,
+            MBox<Sum2<GenericArgs<Ty>, TypePathFn<Ty>>>,
         )>,
     );
 
@@ -128,13 +129,14 @@ impl<T: Parsable> MappedParse for TypePathSegment<T> {
     }
 }
 
-pub struct TypePath<T: Parsable> {
+// Used in path/qualified, types, implementations, bounds
+pub struct TypePath<Ty: Parsable> {
     pub leading: bool,
-    pub segments: Vec<TypePathSegment<T>>,
+    pub segments: Vec<TypePathSegment<Ty>>,
 }
-impl<T: Parsable> Debug for TypePath<T>
+impl<Ty: Parsable> Debug for TypePath<Ty>
 where
-    SmOut<T>: Debug,
+    SmOut<Ty>: Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("TypePath")
@@ -143,10 +145,10 @@ where
             .finish()
     }
 }
-impl<T: Parsable> MappedParse for TypePath<T> {
+impl<Ty: Parsable> MappedParse for TypePath<Ty> {
     type Source = (
         Option<DoubleColon>,
-        MinLength<Interlace<TypePathSegment<T>, DoubleColon>>,
+        MinLength<Interlace<TypePathSegment<Ty>, DoubleColon>>,
     );
 
     type Output = Self;
@@ -171,17 +173,19 @@ mod tests {
     use super::*;
     use std::convert::Infallible;
 
-    insta_match_test!(it_matches_hello, TypePath<Infallible>: hello);
-    insta_match_test!(it_matches_tri_path, TypePath<Infallible>: hello::world::hi);
-    insta_match_test!(it_matches_bi_path, TypePath<Infallible>: hello::world);
-    insta_match_test!(it_matches_long_generic, TypePath<Infallible>: hello::<Hi>);
-    insta_match_test!(it_matches_short_generic, TypePath<Infallible>: hello<Hi>);
+    insta_match_test!(it_matches_hello, TypePath<Ident>: hello);
+    insta_match_test!(it_matches_tri_path, TypePath<Ident>: hello::world::hi);
+    insta_match_test!(it_matches_bi_path, TypePath<Ident>: hello::world);
+    insta_match_test!(it_matches_long_generic, TypePath<Ident>: hello::<Hi>);
+    insta_match_test!(it_matches_short_generic, TypePath<Ident>: hello<Hi>);
+    insta_match_test!(it_matches_fun, TypePath<Infallible>: Fn());
+    insta_match_test!(it_matches_fun_ret, TypePath<Paren<()>>: Fn() -> ());
 
     #[test]
     fn it_matches_multigeneric_type_path() {
         println!(
             "{:#?}",
-            parse::<TypePath<Infallible>>(quote::quote!(hello<hello::Hi, 10, 'a>)).unwrap()
+            parse::<TypePath<TypePath<Ident>>>(quote::quote!(hello<hello::Hi, 10, 'a>)).unwrap()
         );
     }
 }

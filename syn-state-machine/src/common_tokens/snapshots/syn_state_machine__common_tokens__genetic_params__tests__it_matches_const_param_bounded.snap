@@ -1,6 +1,6 @@
 ---
 source: syn-state-machine/src/common_tokens/genetic_params.rs
-expression: "crate::parse::<ConstParam<Ident>>(::quote::quote! { const HELLO : i8 })"
+expression: "crate::parse::<ConstParam<Ident>>(::quote::quote! { const HELLO : i8 = 10 })"
 ---
 Ok(
     (
@@ -11,7 +11,12 @@ Ok(
             ty: Ident(
                 i8,
             ),
-            content: None,
+            content: Some(
+                Punct {
+                    char: '=',
+                    spacing: Alone,
+                },
+            ),
         },
         0,
     ),

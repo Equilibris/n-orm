@@ -28,6 +28,7 @@ impl MappedParse for LifetimeParam {
     }
 }
 
+// Internal
 pub struct TypeParam<T: Parsable> {
     pub id: Ident,
     pub bounds: Option<TypeParamBounds<T>>,
@@ -70,15 +71,16 @@ impl<T: Parsable> MappedParse for TypeParam<T> {
     }
 }
 
-pub struct ConstParam<T: Parsable> {
+// Internal
+pub struct ConstParam<Ty: Parsable> {
     pub id: Ident,
 
-    pub ty: Type<T>,
+    pub ty: SmOut<Ty>,
     pub content: Option<TokenTree>,
 }
-impl<T: Parsable> Debug for ConstParam<T>
+impl<Ty: Parsable> Debug for ConstParam<Ty>
 where
-    SmOut<T>: Debug,
+    SmOut<Ty>: Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("ConstParam")
@@ -88,8 +90,8 @@ where
             .finish()
     }
 }
-impl<T: Parsable> MappedParse for ConstParam<T> {
-    type Source = (KwConst, Identifier, Colon, Type<T>, Option<TokenTree>);
+impl<Ty: Parsable> MappedParse for ConstParam<Ty> {
+    type Source = (KwConst, Identifier, Colon, Ty, Option<TokenTree>);
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -112,7 +114,7 @@ impl<T: Parsable> MappedParse for ConstParam<T> {
 pub enum GenericParam<T: Parsable> {
     LifetimeParam(Attrs<T>, LifetimeParam),
     TypeParam(Attrs<T>, TypeParam<T>),
-    ConstParam(Attrs<T>, ConstParam<T>),
+    ConstParam(Attrs<T>, ConstParam<Type<T>>),
 }
 impl<T: Parsable> Debug for GenericParam<T>
 where
@@ -135,7 +137,7 @@ where
     }
 }
 impl<T: Parsable> MappedParse for GenericParam<T> {
-    type Source = WithAttrs<T, Sum2<Sum2<LifetimeParam, TypeParam<T>>, ConstParam<T>>>;
+    type Source = WithAttrs<T, Sum3<LifetimeParam, TypeParam<T>, ConstParam<Type<T>>>>;
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -144,9 +146,9 @@ impl<T: Parsable> MappedParse for GenericParam<T> {
         src: SmOut<Self::Source>,
     ) -> Result<<Self as MappedParse>::Output, <Self as MappedParse>::Error> {
         Ok(match src.1 {
-            Sum2::Val0(Sum2::Val1(a)) => Self::TypeParam(src.0, a),
-            Sum2::Val0(Sum2::Val0(a)) => Self::LifetimeParam(src.0, a),
-            Sum2::Val1(a) => Self::ConstParam(src.0, a),
+            Sum3::Val0(a) => Self::LifetimeParam(src.0, a),
+            Sum3::Val1(a) => Self::TypeParam(src.0, a),
+            Sum3::Val2(a) => Self::ConstParam(src.0, a),
         })
     }
 
@@ -185,11 +187,9 @@ impl<T: Parsable> MappedParse for GenericParams<T> {
 mod tests {
     use super::*;
 
-    insta_match_test!(it_matches_const_param, ConstParam <Infallible>: const HELLO: i8);
-    insta_match_test!(it_matches_const_param_with_bound, ConstParam <Infallible>: const HELLO: i8 = 10);
-    insta_match_test!(it_matches_type_param, TypeParam<Infallible>: Hello);
-    insta_match_test!(
-        it_matches_type_param_with_bound,
-        TypeParam<Infallible>: Hello: std::fmt::Debug
-    );
+    insta_match_test!(it_matches_const_param,         ConstParam<Ident>: const HELLO: i8);
+    insta_match_test!(it_matches_const_param_bounded, ConstParam<Ident>: const HELLO: i8 = 10);
+
+    insta_match_test!(it_matches_type_param,         TypeParam<Infallible>: Hello);
+    insta_match_test!(it_matches_type_param_bounded, TypeParam<Infallible>: Hello: std::fmt::Debug);
 }

@@ -1,13 +1,13 @@
 use super::super::*;
 use crate::*;
 
-pub struct PathInExpression<T: Parsable> {
+pub struct PathInExpression<Ty: Parsable> {
     pub leading: bool,
-    pub segments: Vec<PathExprSegment<T>>,
+    pub segments: Vec<PathExprSegment<Ty>>,
 }
-impl<T: Parsable> Debug for PathInExpression<T>
+impl<Ty: Parsable> Debug for PathInExpression<Ty>
 where
-    SmOut<T>: Debug,
+    SmOut<Ty>: Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("PathInExpression")
@@ -16,10 +16,10 @@ where
             .finish()
     }
 }
-impl<T: Parsable> MappedParse for PathInExpression<T> {
+impl<Ty: Parsable> MappedParse for PathInExpression<Ty> {
     type Source = (
         Option<DoubleColon>,
-        MinLength<Interlace<PathExprSegment<T>, DoubleColon>>,
+        MinLength<Interlace<PathExprSegment<Ty>, DoubleColon>>,
     );
 
     type Output = Self;
@@ -39,10 +39,11 @@ impl<T: Parsable> MappedParse for PathInExpression<T> {
     }
 }
 
-pub struct PathExprSegment<T: Parsable>(pub PathIdentSegment, pub Option<GenericArgs<T>>);
-impl<T: Parsable> Debug for PathExprSegment<T>
+// Used in qualified
+pub struct PathExprSegment<Ty: Parsable>(pub PathIdentSegment, pub Option<GenericArgs<Ty>>);
+impl<Ty: Parsable> Debug for PathExprSegment<Ty>
 where
-    SmOut<T>: Debug,
+    SmOut<Ty>: Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_tuple("PathExprSegment")
@@ -51,8 +52,8 @@ where
             .finish()
     }
 }
-impl<T: Parsable> MappedParse for PathExprSegment<T> {
-    type Source = (PathIdentSegment, Option<(DoubleColon, GenericArgs<T>)>);
+impl<Ty: Parsable> MappedParse for PathExprSegment<Ty> {
+    type Source = (PathIdentSegment, Option<(DoubleColon, GenericArgs<Ty>)>);
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -66,4 +67,14 @@ impl<T: Parsable> MappedParse for PathExprSegment<T> {
     fn map_err(src: SmErr<Self::Source>) -> <Self as MappedParse>::Error {
         src
     }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    insta_match_test!(
+        it_matches_expr_path,
+        PathInExpression<Ident>: usize::hello::<Hello, World>
+    );
 }

@@ -1,6 +1,6 @@
 ---
 source: syn-state-machine/src/common_tokens/path/types.rs
-expression: "crate::parse::<TypePath<Infallible>>(::quote::quote! { hello < Hi > })"
+expression: "crate::parse::<TypePath<Ident>>(::quote::quote! { hello < Hi > })"
 ---
 Ok(
     (
@@ -16,21 +16,8 @@ Ok(
                     generic_args: GenericArgs(
                         [
                             Type(
-                                NoBounds(
-                                    TypePath(
-                                        TypePath {
-                                            leading: false,
-                                            segments: [
-                                                Simple {
-                                                    id: Id(
-                                                        Ident(
-                                                            Hi,
-                                                        ),
-                                                    ),
-                                                },
-                                            ],
-                                        },
-                                    ),
+                                Ident(
+                                    Hi,
                                 ),
                             ),
                         ],

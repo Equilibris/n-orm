@@ -1,13 +1,13 @@
 use super::super::*;
 use crate::*;
 
-pub struct QualifiedPathType<T: Parsable> {
-    pub ty: Type<T>,
-    pub r#as: Option<TypePath<T>>,
+pub struct QualifiedPathType<Ty: Parsable> {
+    pub ty: SmOut<Ty>,
+    pub r#as: Option<TypePath<Ty>>,
 }
-impl<T: Parsable> Debug for QualifiedPathType<T>
+impl<Ty: Parsable> Debug for QualifiedPathType<Ty>
 where
-    SmOut<T>: Debug,
+    SmOut<Ty>: Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("QualifiedPathType")
@@ -16,8 +16,8 @@ where
             .finish()
     }
 }
-impl<T: Parsable> MappedParse for QualifiedPathType<T> {
-    type Source = (Lt, Type<T>, Option<(KwAs, TypePath<T>)>, Gt);
+impl<Ty: Parsable> MappedParse for QualifiedPathType<Ty> {
+    type Source = (Lt, Ty, Option<(KwAs, TypePath<Ty>)>, Gt);
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -36,10 +36,13 @@ impl<T: Parsable> MappedParse for QualifiedPathType<T> {
     }
 }
 
-pub struct QualifiedPathInType<T: Parsable>(pub QualifiedPathType<T>, pub Vec<TypePathSegment<T>>);
-impl<T: Parsable> Debug for QualifiedPathInType<T>
+pub struct QualifiedPathInType<Ty: Parsable>(
+    pub QualifiedPathType<Ty>,
+    pub Vec<TypePathSegment<Ty>>,
+);
+impl<Ty: Parsable> Debug for QualifiedPathInType<Ty>
 where
-    SmOut<T>: Debug,
+    SmOut<Ty>: Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_tuple("QualifiedPathInType")
@@ -48,8 +51,11 @@ where
             .finish()
     }
 }
-impl<T: Parsable> MappedParse for QualifiedPathInType<T> {
-    type Source = (QualifiedPathType<T>, Vec<(DoubleColon, TypePathSegment<T>)>);
+impl<Ty: Parsable> MappedParse for QualifiedPathInType<Ty> {
+    type Source = (
+        QualifiedPathType<Ty>,
+        Vec<(DoubleColon, TypePathSegment<Ty>)>,
+    );
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -68,13 +74,13 @@ impl<T: Parsable> MappedParse for QualifiedPathInType<T> {
     }
 }
 
-pub struct QualifiedPathInExpression<T: Parsable>(
-    pub QualifiedPathType<T>,
-    pub Vec<PathExprSegment<T>>,
+pub struct QualifiedPathInExpression<Ty: Parsable>(
+    pub QualifiedPathType<Ty>,
+    pub Vec<PathExprSegment<Ty>>,
 );
-impl<T: Parsable> Debug for QualifiedPathInExpression<T>
+impl<Ty: Parsable> Debug for QualifiedPathInExpression<Ty>
 where
-    SmOut<T>: Debug,
+    SmOut<Ty>: Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_tuple("QualifiedPathInExpression")
@@ -83,8 +89,11 @@ where
             .finish()
     }
 }
-impl<T: Parsable> MappedParse for QualifiedPathInExpression<T> {
-    type Source = (QualifiedPathType<T>, Vec<(DoubleColon, PathExprSegment<T>)>);
+impl<Ty: Parsable> MappedParse for QualifiedPathInExpression<Ty> {
+    type Source = (
+        QualifiedPathType<Ty>,
+        Vec<(DoubleColon, PathExprSegment<Ty>)>,
+    );
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -102,10 +111,7 @@ impl<T: Parsable> MappedParse for QualifiedPathInExpression<T> {
 
 #[cfg(test)]
 mod tests {
-    use quote::quote;
-
     use super::*;
-    use crate::parse_terminal;
 
-    insta_match_test!(it_matches_simple_paths, QualifiedPathInType<Infallible> : <hello as Default>::Default);
+    insta_match_test!(it_matches_simple_paths, QualifiedPathInType<Ident> : <hello as Default>::Default);
 }

@@ -108,7 +108,7 @@ pub struct TraitBound<T: Parsable> {
     pub q: bool,
 
     pub r#for: Option<GenericParams<T>>,
-    pub ty: TypePath<T>,
+    pub ty: TypePath<Type<T>>,
 }
 impl<T: Parsable> Debug for TraitBound<T>
 where
@@ -122,7 +122,11 @@ where
             .finish()
     }
 }
-type TraitBoundInternal<T> = (Option<FPunct<'?'>>, Option<ForLifetimes<T>>, TypePath<T>);
+type TraitBoundInternal<T> = (
+    Option<FPunct<'?'>>,
+    Option<ForLifetimes<T>>,
+    TypePath<Type<T>>,
+);
 impl<T: Parsable> MappedParse for TraitBound<T> {
     type Source = Sum2<MBox<TraitBoundInternal<T>>, Paren<TraitBoundInternal<T>>>;
 

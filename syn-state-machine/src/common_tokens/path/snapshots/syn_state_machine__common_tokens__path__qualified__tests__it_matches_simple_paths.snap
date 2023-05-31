@@ -1,26 +1,13 @@
 ---
 source: syn-state-machine/src/common_tokens/path/qualified.rs
-expression: "crate::parse::<QualifiedPathInType<Infallible>>(::quote::quote! {\n            < hello as Default > :: Default\n        })"
+expression: "crate::parse::<QualifiedPathInType<Ident>>(::quote::quote! {\n            < hello as Default > :: Default\n        })"
 ---
 Ok(
     (
         QualifiedPathInType(
             QualifiedPathType {
-                ty: NoBounds(
-                    TypePath(
-                        TypePath {
-                            leading: false,
-                            segments: [
-                                Simple {
-                                    id: Id(
-                                        Ident(
-                                            hello,
-                                        ),
-                                    ),
-                                },
-                            ],
-                        },
-                    ),
+                ty: Ident(
+                    hello,
                 ),
                 as: Some(
                     TypePath {

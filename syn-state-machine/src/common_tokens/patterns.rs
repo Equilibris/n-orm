@@ -36,7 +36,7 @@ impl<T: Parsable> MappedParse for Pattern<T> {
 
 pub enum PatternNoTopAlt<T: Parsable> {
     PatternWithoutRange(PatternWithoutRange<T>),
-    RangePattern(RangePattern<T>),
+    RangePattern(RangePattern<Type<T>>),
 }
 impl<T: Parsable> Debug for PatternNoTopAlt<T>
 where
@@ -52,7 +52,7 @@ where
     }
 }
 impl<T: Parsable> MappedParse for PatternNoTopAlt<T> {
-    type Source = Sum2<PatternWithoutRange<T>, RangePattern<T>>;
+    type Source = Sum2<PatternWithoutRange<T>, RangePattern<Type<T>>>;
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -107,18 +107,18 @@ impl<T: Parsable> Debug for PatternError<T> {
 }
 
 pub enum PatternWithoutRange<T: Parsable> {
-    LiteralPattern(LiteralPattern),
-    IdentifierPattern(Box<IdentifierPattern<T>>),
-    WildcardPattern(WildcardPattern),
-    RestPattern(RestPattern),
-    ReferencePattern(Box<ReferencePattern<T>>),
-    StructPattern(StructPattern<T>),
-    TupleStructPattern(TupleStructPattern<T>),
-    TuplePattern(TuplePattern<T>),
-    GroupedPattern(Box<Pattern<T>>),
-    SlicePattern(SlicePattern<T>),
-    PathPattern(PathPattern<T>),
-    MacroInvocation(MacroInvocation),
+    Literal(LiteralPattern),
+    Identifier(Box<IdentifierPattern<T>>),
+    Wildcard(WildcardPattern),
+    Rest(RestPattern),
+    Reference(Box<ReferencePattern<T>>),
+    Struct(StructPattern<T>),
+    TupleStruct(TupleStructPattern<T>),
+    Tuple(TuplePattern<T>),
+    Grouped(Box<Pattern<T>>),
+    Slice(SlicePattern<T>),
+    Path(PathPattern<T>),
+    Macro(MacroInvocation),
 }
 impl<T: Parsable> Debug for PatternWithoutRange<T>
 where
@@ -126,22 +126,18 @@ where
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::LiteralPattern(arg0) => f.debug_tuple("LiteralPattern").field(arg0).finish(),
-            Self::IdentifierPattern(arg0) => {
-                f.debug_tuple("IdentifierPattern").field(arg0).finish()
-            }
-            Self::WildcardPattern(arg0) => f.debug_tuple("WildcardPattern").field(arg0).finish(),
-            Self::RestPattern(arg0) => f.debug_tuple("RestPattern").field(arg0).finish(),
-            Self::ReferencePattern(arg0) => f.debug_tuple("ReferencePattern").field(arg0).finish(),
-            Self::StructPattern(arg0) => f.debug_tuple("StructPattern").field(arg0).finish(),
-            Self::TupleStructPattern(arg0) => {
-                f.debug_tuple("TupleStructPattern").field(arg0).finish()
-            }
-            Self::TuplePattern(arg0) => f.debug_tuple("TuplePattern").field(arg0).finish(),
-            Self::GroupedPattern(arg0) => f.debug_tuple("GroupedPattern").field(arg0).finish(),
-            Self::SlicePattern(arg0) => f.debug_tuple("SlicePattern").field(arg0).finish(),
-            Self::PathPattern(arg0) => f.debug_tuple("PathPattern").field(arg0).finish(),
-            Self::MacroInvocation(arg0) => f.debug_tuple("MacroInvocation").field(arg0).finish(),
+            Self::Literal(arg0) => f.debug_tuple("LiteralPattern").field(arg0).finish(),
+            Self::Identifier(arg0) => f.debug_tuple("IdentifierPattern").field(arg0).finish(),
+            Self::Wildcard(arg0) => f.debug_tuple("WildcardPattern").field(arg0).finish(),
+            Self::Rest(arg0) => f.debug_tuple("RestPattern").field(arg0).finish(),
+            Self::Reference(arg0) => f.debug_tuple("ReferencePattern").field(arg0).finish(),
+            Self::Struct(arg0) => f.debug_tuple("StructPattern").field(arg0).finish(),
+            Self::TupleStruct(arg0) => f.debug_tuple("TupleStructPattern").field(arg0).finish(),
+            Self::Tuple(arg0) => f.debug_tuple("TuplePattern").field(arg0).finish(),
+            Self::Grouped(arg0) => f.debug_tuple("GroupedPattern").field(arg0).finish(),
+            Self::Slice(arg0) => f.debug_tuple("SlicePattern").field(arg0).finish(),
+            Self::Path(arg0) => f.debug_tuple("PathPattern").field(arg0).finish(),
+            Self::Macro(arg0) => f.debug_tuple("MacroInvocation").field(arg0).finish(),
         }
     }
 }
@@ -170,18 +166,18 @@ impl<T: Parsable> MappedParse for PatternWithoutRange<T> {
         src: SmOut<Self::Source>,
     ) -> Result<<Self as MappedParse>::Output, <Self as MappedParse>::Error> {
         Ok(match *src {
-            Sum12::Val0(a) => Self::LiteralPattern(a),
-            Sum12::Val1(a) => Self::IdentifierPattern(Box::new(a)),
-            Sum12::Val2(a) => Self::WildcardPattern(a),
-            Sum12::Val3(a) => Self::RestPattern(a),
-            Sum12::Val4(a) => Self::ReferencePattern(Box::new(a)),
-            Sum12::Val5(a) => Self::StructPattern(a),
-            Sum12::Val6(a) => Self::TupleStructPattern(a),
-            Sum12::Val7(a) => Self::TuplePattern(a),
-            Sum12::Val8(a) => Self::GroupedPattern(Box::new(a.0)),
-            Sum12::Val9(a) => Self::SlicePattern(a),
-            Sum12::Val10(a) => Self::PathPattern(a),
-            Sum12::Val11(a) => Self::MacroInvocation(a),
+            Sum12::Val0(a) => Self::Literal(a),
+            Sum12::Val1(a) => Self::Identifier(Box::new(a)),
+            Sum12::Val2(a) => Self::Wildcard(a),
+            Sum12::Val3(a) => Self::Rest(a),
+            Sum12::Val4(a) => Self::Reference(Box::new(a)),
+            Sum12::Val5(a) => Self::Struct(a),
+            Sum12::Val6(a) => Self::TupleStruct(a),
+            Sum12::Val7(a) => Self::Tuple(a),
+            Sum12::Val8(a) => Self::Grouped(Box::new(a.0)),
+            Sum12::Val9(a) => Self::Slice(a),
+            Sum12::Val10(a) => Self::Path(a),
+            Sum12::Val11(a) => Self::Macro(a),
         })
     }
 
@@ -267,7 +263,7 @@ impl<T: Parsable> MappedParse for SlicePatternItems<T> {
 }
 
 pub struct TupleStructPattern<T: Parsable> {
-    pub path: PathInExpression<T>,
+    pub path: PathInExpression<Type<T>>,
     pub items: Vec<Pattern<T>>,
 }
 impl<T: Parsable> Debug for TupleStructPattern<T>
@@ -282,7 +278,7 @@ where
     }
 }
 impl<T: Parsable> MappedParse for TupleStructPattern<T> {
-    type Source = (PathInExpression<T>, Paren<TupleStructItems<T>>);
+    type Source = (PathInExpression<Type<T>>, Paren<TupleStructItems<T>>);
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -337,7 +333,10 @@ where
     }
 }
 impl<T: Parsable> MappedParse for TuplePattern<T> {
-    type Source = (PathInExpression<T>, Paren<Option<TuplePatternItems<T>>>);
+    type Source = (
+        PathInExpression<Type<T>>,
+        Paren<Option<TuplePatternItems<T>>>,
+    );
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -393,7 +392,7 @@ impl<T: Parsable> MappedParse for TuplePatternItems<T> {
 }
 
 pub struct StructPattern<T: Parsable> {
-    pub path: PathInExpression<T>,
+    pub path: PathInExpression<Type<T>>,
 
     pub et_cetera: bool,
 
@@ -412,7 +411,10 @@ where
     }
 }
 impl<T: Parsable> MappedParse for StructPattern<T> {
-    type Source = (PathInExpression<T>, Brace<Option<StructPatternElements<T>>>);
+    type Source = (
+        PathInExpression<Type<T>>,
+        Brace<Option<StructPatternElements<T>>>,
+    );
 
     type Output = Self;
     type Error = SmErr<Self::Source>;

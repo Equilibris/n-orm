@@ -1,6 +1,6 @@
 ---
 source: syn-state-machine/src/common_tokens/patterns/range_patterns.rs
-expression: "crate::parse::<RangePattern<Infallible>>(::quote::quote! { 0 ..= 10 })"
+expression: "crate::parse::<RangePattern<Infallible>>(::quote::quote! { 0 ..= 0 })"
 ---
 Ok(
     (
@@ -21,9 +21,9 @@ Ok(
                     (
                         None,
                         IntegerLit {
-                            raw: "10",
+                            raw: "0",
                             start_main_part: 0,
-                            end_main_part: 2,
+                            end_main_part: 1,
                             base: Decimal,
                         },
                     ),

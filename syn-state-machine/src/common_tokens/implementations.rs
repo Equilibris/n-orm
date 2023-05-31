@@ -43,7 +43,7 @@ pub struct TraitImpl<T: Parsable, Ty: Parsable> {
     pub genetic_params: Option<GenericParams<T>>,
     pub where_clause: Option<WhereClause<T, Ty>>,
     pub neg: bool,
-    pub r#trait: TypePath<T>,
+    pub r#trait: TypePath<Ty>,
     pub ty: SmOut<Ty>,
 
     pub attrs: InnerAttrs<T>,
@@ -73,7 +73,7 @@ impl<T: Parsable, Ty: Parsable> MappedParse for TraitImpl<T, Ty> {
         KwImpl,
         Option<MBox<GenericParams<T>>>,
         Option<Exclamation>,
-        MBox<TypePath<T>>,
+        MBox<TypePath<Ty>>,
         KwFor,
         Ty,
         Option<WhereClause<T, Ty>>,
