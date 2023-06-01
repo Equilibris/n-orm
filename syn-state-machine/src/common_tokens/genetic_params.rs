@@ -31,7 +31,7 @@ impl MappedParse for LifetimeParam {
 // Internal
 pub struct TypeParam<T: Parsable, Ty: Parsable> {
     pub id: Ident,
-    pub bounds: Option<TypeParamBounds<T>>,
+    pub bounds: Option<TypeParamBounds<T, Ty>>,
     pub ty: Option<SmOut<Ty>>,
 }
 impl<T: Parsable, Ty: Parsable> Debug for TypeParam<T, Ty>
@@ -50,7 +50,7 @@ where
 impl<T: Parsable, Ty: Parsable> MappedParse for TypeParam<T, Ty> {
     type Source = (
         Identifier,
-        Option<(Colon, TypeParamBounds<T>)>,
+        Option<(Colon, TypeParamBounds<T, Ty>)>,
         Option<(Eq, Ty)>,
     );
 

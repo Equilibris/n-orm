@@ -5,7 +5,7 @@ use std::fmt::Debug;
 pub struct TypeAlias<T: Parsable, Ty: Parsable> {
     pub id: Ident,
     pub params: Option<GenericParams<T, Ty>>,
-    pub bounds: Option<TypeParamBounds<T>>,
+    pub bounds: Option<TypeParamBounds<T, Ty>>,
     pub pre_where_clause: Option<WhereClause<T, Ty>>,
 
     pub ty: Option<SmOut<Ty>>,
@@ -32,7 +32,7 @@ impl<T: Parsable, Ty: Parsable> MappedParse for TypeAlias<T, Ty> {
         KwType,
         Identifier,
         Option<GenericParams<T, Ty>>,
-        Option<(Colon, TypeParamBounds<T>)>,
+        Option<(Colon, TypeParamBounds<T, Ty>)>,
         Option<WhereClause<T, Ty>>,
         Option<(Eq, Ty, Option<WhereClause<T, Ty>>)>,
         Semi,

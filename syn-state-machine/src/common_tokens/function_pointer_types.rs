@@ -4,7 +4,7 @@ use super::*;
 use crate::*;
 
 pub struct BareFunctionType<T: Parsable, Ty: Parsable> {
-    pub r#for: Option<ForLifetimes<T>>,
+    pub r#for: Option<ForLifetimes<T, Ty>>,
     pub qualifiers: FunctionTypeQualifiers,
     pub params: Option<FunctionParametersMaybeNamedVariadic<T, Ty>>,
     pub ret: Option<BareFunctionReturnType<Ty>>,
@@ -25,7 +25,7 @@ where
 }
 impl<T: Parsable, Ty: Parsable> MappedParse for BareFunctionType<T, Ty> {
     type Source = (
-        Option<ForLifetimes<T>>,
+        Option<ForLifetimes<T, Ty>>,
         FunctionTypeQualifiers,
         KwFn,
         Paren<Option<FunctionParametersMaybeNamedVariadic<T, Ty>>>,

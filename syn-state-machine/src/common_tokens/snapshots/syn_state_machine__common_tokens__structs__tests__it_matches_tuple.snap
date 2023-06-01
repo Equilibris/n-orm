@@ -92,21 +92,8 @@ Ok(
                                                                                     Ident(
                                                                                         Other,
                                                                                     ),
-                                                                                    NoBounds(
-                                                                                        TypePath(
-                                                                                            TypePath {
-                                                                                                leading: false,
-                                                                                                segments: [
-                                                                                                    Simple {
-                                                                                                        id: Id(
-                                                                                                            Ident(
-                                                                                                                T,
-                                                                                                            ),
-                                                                                                        ),
-                                                                                                    },
-                                                                                                ],
-                                                                                            },
-                                                                                        ),
+                                                                                    Ident(
+                                                                                        T,
                                                                                     ),
                                                                                 ),
                                                                             ),

@@ -4,8 +4,8 @@ use std::fmt::Debug;
 
 pub enum Type<T: Parsable> {
     NoBounds(TypeNoBounds<T>),
-    ImplTrait(ImplTraitType<T>),
-    TraitObject(TraitObjectType<T>),
+    ImplTrait(Box<ImplTraitType<T, Self>>),
+    TraitObject(Box<TraitObjectType<T, Self>>),
 }
 impl<T: Parsable> Debug for Type<T>
 where
@@ -20,7 +20,8 @@ where
     }
 }
 impl<T: Parsable> MappedParse for Type<T> {
-    type Source = Sum3<TypeNoBounds<T>, MBox<ImplTraitType<T>>, MBox<TraitObjectType<T>>>;
+    type Source =
+        Sum3<TypeNoBounds<T>, PBox<ImplTraitType<T, Self>>, PBox<TraitObjectType<T, Self>>>;
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -44,8 +45,8 @@ impl<T: Parsable> MappedParse for Type<T> {
 #[error("Expected type")]
 pub struct TypeNoBoundsError<T: Parsable> {
     pub parenthesized: Box<SmErr<ParenthesizedType<T>>>,
-    pub impl_trait_one_bound: SmErr<ImplTraitTypeOneBound<T>>,
-    pub trait_object_one_bound: SmErr<TraitObjectTypeOneBound<T>>,
+    pub impl_trait_one_bound: SmErr<ImplTraitTypeOneBound<T, Type<T>>>,
+    pub trait_object_one_bound: SmErr<TraitObjectTypeOneBound<T, Type<T>>>,
     pub type_path: SmErr<TypePath<Type<T>>>,
     pub tuple: SmErr<TupleType<T>>,
     pub never: SmErr<NeverType>,
@@ -81,8 +82,8 @@ impl<T: Parsable> Debug for TypeNoBoundsError<T> {
 
 pub enum TypeNoBounds<T: Parsable> {
     Parenthesized(Box<ParenthesizedType<T>>),
-    ImplTraitOneBound(ImplTraitTypeOneBound<T>),
-    TraitObjectOneBound(TraitObjectTypeOneBound<T>),
+    ImplTraitOneBound(ImplTraitTypeOneBound<T, Type<T>>),
+    TraitObjectOneBound(TraitObjectTypeOneBound<T, Type<T>>),
     TypePath(TypePath<Type<T>>),
     Tuple(TupleType<T>),
     Never(NeverType),
@@ -126,8 +127,8 @@ impl<T: Parsable> MappedParse for TypeNoBounds<T> {
     type Source = PBox<
         Sum14<
             ParenthesizedType<T>,
-            ImplTraitTypeOneBound<T>,
-            TraitObjectTypeOneBound<T>,
+            ImplTraitTypeOneBound<T, Type<T>>,
+            TraitObjectTypeOneBound<T, Type<T>>,
             TypePath<Type<T>>,
             TupleType<T>,
             NeverType,

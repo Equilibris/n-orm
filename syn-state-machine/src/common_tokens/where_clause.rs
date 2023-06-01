@@ -97,9 +97,9 @@ impl MappedParse for LifetimeWhereClauseItem {
 }
 
 pub struct TypeBoundWhereClauseItem<T: Parsable, Ty: Parsable> {
-    pub r#for: Option<ForLifetimes<T>>,
+    pub r#for: Option<ForLifetimes<T, Ty>>,
     pub ty: SmOut<Ty>,
-    pub bounds: Option<TypeParamBounds<T>>,
+    pub bounds: Option<TypeParamBounds<T, Ty>>,
 }
 impl<T: Parsable, Ty: Parsable> Debug for TypeBoundWhereClauseItem<T, Ty>
 where
@@ -116,10 +116,10 @@ where
 }
 impl<T: Parsable, Ty: Parsable> MappedParse for TypeBoundWhereClauseItem<T, Ty> {
     type Source = (
-        Option<ForLifetimes<T>>,
+        Option<ForLifetimes<T, Ty>>,
         Ty,
         Colon,
-        Option<TypeParamBounds<T>>,
+        Option<TypeParamBounds<T, Ty>>,
     );
 
     type Output = Self;
