@@ -29,14 +29,15 @@ impl MappedParse for LifetimeParam {
 }
 
 // Internal
-pub struct TypeParam<T: Parsable> {
+pub struct TypeParam<T: Parsable, Ty: Parsable> {
     pub id: Ident,
     pub bounds: Option<TypeParamBounds<T>>,
-    pub ty: Option<Type<T>>,
+    pub ty: Option<SmOut<Ty>>,
 }
-impl<T: Parsable> Debug for TypeParam<T>
+impl<T: Parsable, Ty: Parsable> Debug for TypeParam<T, Ty>
 where
     SmOut<T>: Debug,
+    SmOut<Ty>: Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("TypeParam")
@@ -46,11 +47,11 @@ where
             .finish()
     }
 }
-impl<T: Parsable> MappedParse for TypeParam<T> {
+impl<T: Parsable, Ty: Parsable> MappedParse for TypeParam<T, Ty> {
     type Source = (
         Identifier,
         Option<(Colon, TypeParamBounds<T>)>,
-        Option<(Eq, Type<T>)>,
+        Option<(Eq, Ty)>,
     );
 
     type Output = Self;
@@ -111,14 +112,15 @@ impl<Ty: Parsable> MappedParse for ConstParam<Ty> {
     }
 }
 
-pub enum GenericParam<T: Parsable> {
+pub enum GenericParam<T: Parsable, Ty: Parsable> {
     LifetimeParam(Attrs<T>, LifetimeParam),
-    TypeParam(Attrs<T>, TypeParam<T>),
-    ConstParam(Attrs<T>, ConstParam<Type<T>>),
+    TypeParam(Attrs<T>, TypeParam<T, Ty>),
+    ConstParam(Attrs<T>, ConstParam<Ty>),
 }
-impl<T: Parsable> Debug for GenericParam<T>
+impl<T: Parsable, Ty: Parsable> Debug for GenericParam<T, Ty>
 where
     SmOut<T>: Debug,
+    SmOut<Ty>: Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -136,8 +138,8 @@ where
         }
     }
 }
-impl<T: Parsable> MappedParse for GenericParam<T> {
-    type Source = WithAttrs<T, Sum3<LifetimeParam, TypeParam<T>, ConstParam<Type<T>>>>;
+impl<T: Parsable, Ty: Parsable> MappedParse for GenericParam<T, Ty> {
+    type Source = WithAttrs<T, Sum3<LifetimeParam, TypeParam<T, Ty>, ConstParam<Ty>>>;
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -157,17 +159,18 @@ impl<T: Parsable> MappedParse for GenericParam<T> {
     }
 }
 
-pub struct GenericParams<T: Parsable>(pub Vec<GenericParam<T>>);
-impl<T: Parsable> Debug for GenericParams<T>
+pub struct GenericParams<T: Parsable, Ty: Parsable>(pub Vec<GenericParam<T, Ty>>);
+impl<T: Parsable, Ty: Parsable> Debug for GenericParams<T, Ty>
 where
     SmOut<T>: Debug,
+    SmOut<Ty>: Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_tuple("GenericParams").field(&self.0).finish()
     }
 }
-impl<T: Parsable> MappedParse for GenericParams<T> {
-    type Source = (Lt, Interlace<MBox<GenericParam<T>>, Comma>, Gt);
+impl<T: Parsable, Ty: Parsable> MappedParse for GenericParams<T, Ty> {
+    type Source = (Lt, Interlace<MBox<GenericParam<T, Ty>>, Comma>, Gt);
 
     type Output = Self;
     type Error = SmErr<Self::Source>;
@@ -190,6 +193,6 @@ mod tests {
     insta_match_test!(it_matches_const_param,         ConstParam<Ident>: const HELLO: i8);
     insta_match_test!(it_matches_const_param_bounded, ConstParam<Ident>: const HELLO: i8 = 10);
 
-    insta_match_test!(it_matches_type_param,         TypeParam<Infallible>: Hello);
-    insta_match_test!(it_matches_type_param_bounded, TypeParam<Infallible>: Hello: std::fmt::Debug);
+    insta_match_test!(it_matches_type_param,         TypeParam<Infallible, Infallible>: Hello);
+    insta_match_test!(it_matches_type_param_bounded, TypeParam<Infallible, Infallible>: Hello: std::fmt::Debug);
 }

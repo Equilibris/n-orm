@@ -8,7 +8,7 @@ pub struct Function<T: Parsable, Ty: Parsable> {
 
     pub ident: Ident,
 
-    pub generic_params: Option<GenericParams<T>>,
+    pub generic_params: Option<GenericParams<T, Ty>>,
     pub where_clause: Option<WhereClause<T, Ty>>,
 
     pub self_param: Option<WithAttrs<T, SelfParam<Ty>>>,
@@ -40,7 +40,7 @@ impl<T: Parsable, Ty: Parsable> MappedParse for Function<T, Ty> {
         FunctionQualifiers,
         KwFn,
         Identifier,
-        Option<GenericParams<T>>,
+        Option<GenericParams<T, Ty>>,
         Paren<FunctionParameters<T, Ty>>,
         Option<FunctionReturnType<Ty>>,
         Option<WhereClause<T, Ty>>,

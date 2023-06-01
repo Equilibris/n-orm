@@ -107,7 +107,7 @@ impl<T: Parsable> MappedParse for TypeParamBound<T> {
 pub struct TraitBound<T: Parsable> {
     pub q: bool,
 
-    pub r#for: Option<GenericParams<T>>,
+    pub r#for: Option<GenericParams<T, Type<T>>>,
     pub ty: TypePath<Type<T>>,
 }
 impl<T: Parsable> Debug for TraitBound<T>
@@ -150,7 +150,7 @@ impl<T: Parsable> MappedParse for TraitBound<T> {
     }
 }
 
-pub struct ForLifetimes<T: Parsable>(pub GenericParams<T>);
+pub struct ForLifetimes<T: Parsable>(pub GenericParams<T, Type<T>>);
 impl<T: Parsable> Debug for ForLifetimes<T>
 where
     SmOut<T>: Debug,
@@ -160,7 +160,7 @@ where
     }
 }
 impl<T: Parsable> MappedParse for ForLifetimes<T> {
-    type Source = (KwFor, GenericParams<T>);
+    type Source = (KwFor, GenericParams<T, Type<T>>);
 
     type Output = Self;
     type Error = SmErr<Self::Source>;

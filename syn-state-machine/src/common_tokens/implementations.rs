@@ -40,7 +40,7 @@ impl<T: Parsable, Ty: Parsable> MappedParse for Implementation<T, Ty> {
 
 pub struct TraitImpl<T: Parsable, Ty: Parsable> {
     pub r#unsafe: bool,
-    pub genetic_params: Option<GenericParams<T>>,
+    pub genetic_params: Option<GenericParams<T, Ty>>,
     pub where_clause: Option<WhereClause<T, Ty>>,
     pub neg: bool,
     pub r#trait: TypePath<Ty>,
@@ -71,7 +71,7 @@ impl<T: Parsable, Ty: Parsable> MappedParse for TraitImpl<T, Ty> {
     type Source = (
         Option<KwUnsafe>,
         KwImpl,
-        Option<MBox<GenericParams<T>>>,
+        Option<MBox<GenericParams<T, Ty>>>,
         Option<Exclamation>,
         MBox<TypePath<Ty>>,
         KwFor,
@@ -104,7 +104,7 @@ impl<T: Parsable, Ty: Parsable> MappedParse for TraitImpl<T, Ty> {
 }
 
 pub struct InherentImpl<T: Parsable, Ty: Parsable> {
-    genetic_params: Option<GenericParams<T>>,
+    genetic_params: Option<GenericParams<T, Ty>>,
     ty: SmOut<Ty>,
     where_clause: Option<WhereClause<T, Ty>>,
 
@@ -114,7 +114,7 @@ pub struct InherentImpl<T: Parsable, Ty: Parsable> {
 impl<T: Parsable, Ty: Parsable> MappedParse for InherentImpl<T, Ty> {
     type Source = (
         KwImpl,
-        Option<GenericParams<T>>,
+        Option<GenericParams<T, Ty>>,
         Ty,
         Option<WhereClause<T, Ty>>,
         Brace<WithInnerAttrs<T, AssociateItems<T, Ty>>>,

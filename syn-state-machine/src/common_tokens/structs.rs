@@ -99,7 +99,7 @@ impl MappedParse for UnitStruct {
 
 pub struct BlockStruct<T: Parsable, Ty: Parsable> {
     pub id: Ident,
-    pub params: Option<GenericParams<T>>,
+    pub params: Option<GenericParams<T, Ty>>,
     pub fields: StructFields<T, Ty>,
     pub where_clause: Option<WhereClause<T, Ty>>,
 }
@@ -121,7 +121,7 @@ impl<T: Parsable, Ty: Parsable> MappedParse for BlockStruct<T, Ty> {
     type Source = (
         KwStruct,
         Identifier,
-        Option<GenericParams<T>>,
+        Option<GenericParams<T, Ty>>,
         Option<WhereClause<T, Ty>>,
         Brace<StructFields<T, Ty>>,
     );
@@ -147,7 +147,7 @@ impl<T: Parsable, Ty: Parsable> MappedParse for BlockStruct<T, Ty> {
 
 pub struct TupleStruct<T: Parsable, Ty: Parsable> {
     pub id: Ident,
-    pub params: Option<GenericParams<T>>,
+    pub params: Option<GenericParams<T, Ty>>,
     pub fields: TupleFields<T, Ty>,
     pub where_clause: Option<WhereClause<T, Ty>>,
 }
@@ -169,7 +169,7 @@ impl<T: Parsable, Ty: Parsable> MappedParse for TupleStruct<T, Ty> {
     type Source = (
         KwStruct,
         Identifier,
-        Option<GenericParams<T>>,
+        Option<GenericParams<T, Ty>>,
         Paren<TupleFields<T, Ty>>,
         Option<WhereClause<T, Ty>>,
         Semi,

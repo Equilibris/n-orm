@@ -4,7 +4,7 @@ use std::fmt::Debug;
 
 pub struct Union<T: Parsable, Ty: Parsable> {
     pub id: Ident,
-    pub genetic_params: Option<GenericParams<T>>,
+    pub genetic_params: Option<GenericParams<T, Ty>>,
     pub where_clause: Option<WhereClause<T, Ty>>,
     pub fields: StructFields<T, Ty>,
 }
@@ -12,7 +12,7 @@ impl<T: Parsable, Ty: Parsable> MappedParse for Union<T, Ty> {
     type Source = (
         KwUnion,
         Ident,
-        Option<GenericParams<T>>,
+        Option<GenericParams<T, Ty>>,
         Option<WhereClause<T, Ty>>,
         Brace<MinLength<StructFields<T, Ty>>>,
     );
