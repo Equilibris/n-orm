@@ -254,10 +254,10 @@ impl<Ty: Parsable> MappedParse for SelfParam<Ty> {
     }
 }
 
-type FunctionParamPattern<T, Ty> = (PatternNoTopAlt<T>, Colon, Sum2<Ty, Elipsis>);
+type FunctionParamPattern<T, Ty> = (PatternNoTopAlt<T, Ty>, Colon, Sum2<Ty, Elipsis>);
 
 pub enum FunctionParam<T: Parsable, Ty: Parsable> {
-    Patterned(PatternNoTopAlt<T>, Sum2<SmOut<Ty>, Elipsis>),
+    Patterned(PatternNoTopAlt<T, Ty>, Sum2<SmOut<Ty>, Elipsis>),
     Type(SmOut<Ty>),
     Elipsis,
 }
