@@ -1,23 +1,12 @@
 ---
 source: syn-state-machine/src/common_tokens/types.rs
-expression: "crate::parse::<RawPointerType<Infallible>>(::quote::quote! { * mut hello })"
+expression: "crate::parse::<RawPointerType<Ident>>(::quote::quote! { * mut hello })"
 ---
 Ok(
     (
         Mut(
-            TypePath(
-                TypePath {
-                    leading: false,
-                    segments: [
-                        Simple {
-                            id: Id(
-                                Ident(
-                                    hello,
-                                ),
-                            ),
-                        },
-                    ],
-                },
+            Ident(
+                hello,
             ),
         ),
         0,
