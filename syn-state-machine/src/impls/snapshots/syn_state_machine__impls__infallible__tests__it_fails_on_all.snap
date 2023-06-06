@@ -1,7 +1,0 @@
----
-source: syn-state-machine/src/impls/infallible.rs
-expression: "crate::parse::<Infallible>(::quote::quote! {})"
----
-Err(
-    Termination,
-)
