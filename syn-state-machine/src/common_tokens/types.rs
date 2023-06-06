@@ -48,7 +48,7 @@ pub struct TypeNoBoundsError<T: Parsable, Ty: Parsable> {
     pub impl_trait_one_bound: SmErr<ImplTraitTypeOneBound<T, Ty>>,
     pub trait_object_one_bound: SmErr<TraitObjectTypeOneBound<T, Ty>>,
     pub type_path: SmErr<TypePath<Ty>>,
-    pub tuple: SmErr<TupleType<T>>,
+    pub tuple: SmErr<TupleType<Ty>>,
     pub never: SmErr<NeverType>,
     pub raw_pointer: Box<SmErr<RawPointerType<TypeNoBounds<T, Ty>>>>,
     pub reference: Box<SmErr<ReferenceType<T>>>,
